@@ -2,13 +2,13 @@ package org.zxkill.nori.ui.home
 
 import android.app.Application
 import androidx.compose.material3.SnackbarHostState
+import androidx.datastore.core.DataStore
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
-import org.nori.skill.context.SkillContext
 import org.zxkill.nori.di.SkillContextInternal
 import org.zxkill.nori.di.SpeechOutputDeviceWrapper
 import org.zxkill.nori.di.SttInputDeviceWrapper
@@ -18,6 +18,7 @@ import org.zxkill.nori.eval.SkillEvaluator
 import org.zxkill.nori.eval.SkillHandler
 import org.zxkill.nori.io.input.SttState
 import org.zxkill.nori.io.speech.SnackbarSpeechDevice
+import org.zxkill.nori.settings.datastore.UserSettings
 import javax.inject.Inject
 
 /**
@@ -35,6 +36,7 @@ class HomeScreenViewModel @Inject constructor(
     val speechOutputDevice: SpeechOutputDeviceWrapper,
     val wakeDevice: WakeDeviceWrapper,
     val skillEvaluator: SkillEvaluator,
+    val dataStore: DataStore<UserSettings>,
     // this is always instantiated, but will do nothing if
     // it is not the speech device chosen by the user
     snackbarSpeechDevice: SnackbarSpeechDevice,
