@@ -1,6 +1,5 @@
 rootProject.name = "Nori"
 include(":app")
-include(":skill")
 
 pluginManagement {
     repositories {
