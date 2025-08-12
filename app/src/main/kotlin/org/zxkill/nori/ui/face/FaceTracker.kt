@@ -1,6 +1,9 @@
 package org.zxkill.nori.ui.face
 
 import android.graphics.Rect
+import android.hardware.camera2.CaptureRequest
+import android.util.Range
+import androidx.camera.camera2.interop.Camera2Interop
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
@@ -54,6 +57,7 @@ class FaceTrackerState internal constructor(
  * Трекер настроен на максимальную эффективность:
  *  - детектор лица работает в быстром режиме без лишних опций;
  *  - кадры анализируются в разрешении 640×480;
+ *  - частота работы камеры ограничена 15 кадрами в секунду;
  *  - обрабатывается лишь каждый второй кадр, остальные игнорируются;
  *  - если предыдущий кадр ещё в работе, следующий сразу закрывается.
  * Даже при отключённом [debug] камера и анализ продолжают работать,
@@ -101,7 +105,14 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
         var isProcessing = false
         // Счётчик кадров, чтобы обрабатывать лишь каждый второй
         var frameCounter = 0
-        val analysis = ImageAnalysis.Builder()
+        // Строим use case анализа с ограничением частоты кадров камеры
+        val analysisBuilder = ImageAnalysis.Builder()
+        Camera2Interop.Extender(analysisBuilder)
+            .setCaptureRequestOption(
+                CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
+                Range(15, 15), // 15 fps — меньше нагрев от модуля камеры
+            )
+        val analysis = analysisBuilder
             // Устанавливаем невысокое разрешение кадра для снижения нагрузки
             .setTargetResolution(android.util.Size(640, 480))
             // Берём только последний кадр, чтобы не накапливать очередь
@@ -236,7 +247,14 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
         cameraProvider.unbindAll()
         val useCases = mutableListOf<UseCase>(analysis)
         if (debug) {
-            val preview = Preview.Builder().build().also {
+            // При выводе превью также ограничиваем частоту кадров камеры
+            val previewBuilder = Preview.Builder()
+            Camera2Interop.Extender(previewBuilder)
+                .setCaptureRequestOption(
+                    CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
+                    Range(15, 15),
+                )
+            val preview = previewBuilder.build().also {
                 it.setSurfaceProvider(state.previewView.surfaceProvider)
             }
             useCases.add(preview)
