@@ -105,9 +105,6 @@ dependencies {
     // Desugaring
     coreLibraryDesugaring(libs.desugar.jdk.libs)
 
-    // Nori own libraries
-    implementation(project(":skill"))
-
     // Android
     implementation(libs.appcompat)
 
