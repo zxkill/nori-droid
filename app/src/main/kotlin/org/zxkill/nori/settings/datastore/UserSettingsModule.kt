@@ -63,12 +63,6 @@ class UserSettingsModule {
                             else -> Language.LANGUAGE_SYSTEM
                         }
                     )
-                    .setInputDevice(
-                        when (prefs.getString("input_method")) {
-                            "text" -> InputDevice.INPUT_DEVICE_NOTHING
-                            else -> InputDevice.INPUT_DEVICE_UNSET
-                        }
-                    )
                     .setSpeechOutputDevice(
                         when (prefs.getString("speech_output_method")) {
                             "toast" -> SpeechOutputDevice.SPEECH_OUTPUT_DEVICE_TOAST

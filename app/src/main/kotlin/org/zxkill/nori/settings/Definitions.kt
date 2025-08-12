@@ -1,34 +1,21 @@
 package org.zxkill.nori.settings
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.BreakfastDining
-import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.Hearing
-import androidx.compose.material.icons.filled.InvertColors
-import androidx.compose.material.icons.filled.KeyboardAlt
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.LightMode
-import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Minimize
-import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PhoneAndroid
-import androidx.compose.material.icons.filled.PictureInPictureAlt
 import androidx.compose.material.icons.filled.SpeakerPhone
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import org.zxkill.nori.R
-import org.zxkill.nori.settings.datastore.InputDevice
 import org.zxkill.nori.settings.datastore.Language
 import org.zxkill.nori.settings.datastore.SpeechOutputDevice
-import org.zxkill.nori.settings.datastore.SttPlaySound
 import org.zxkill.nori.settings.datastore.Theme
-import org.zxkill.nori.settings.datastore.WakeDevice
-import org.zxkill.nori.settings.ui.BooleanSetting
 import org.zxkill.nori.settings.ui.ListSetting
 
 
@@ -90,57 +77,6 @@ fun themeSetting() = ListSetting(
 )
 
 @Composable
-fun dynamicColors() = BooleanSetting(
-    title = stringResource(R.string.pref_dynamic_colors_title),
-    icon = Icons.Default.InvertColors,
-    descriptionOff = stringResource(R.string.pref_dynamic_colors_summary),
-    descriptionOn = stringResource(R.string.pref_dynamic_colors_summary),
-)
-
-@Composable
-fun inputDevice() = ListSetting(
-    title = stringResource(R.string.pref_input_method),
-    icon = Icons.Default.Mic,
-    description = stringResource(R.string.pref_input_method_summary),
-    possibleValues = listOf(
-        ListSetting.Value(
-            value = InputDevice.INPUT_DEVICE_VOSK,
-            name = stringResource(R.string.pref_input_method_vosk),
-            description = stringResource(R.string.pref_input_method_vosk_summary),
-            icon = Icons.Default.Mic,
-        ),
-        ListSetting.Value(
-            value = InputDevice.INPUT_DEVICE_EXTERNAL_POPUP,
-            name = stringResource(R.string.pref_input_method_external_popup),
-            description = stringResource(R.string.pref_input_method_external_popup_summary),
-            icon = Icons.Default.PictureInPictureAlt,
-        ),
-        ListSetting.Value(
-            value = InputDevice.INPUT_DEVICE_NOTHING,
-            name = stringResource(R.string.pref_input_method_text),
-            icon = Icons.Default.KeyboardAlt,
-        ),
-    ),
-)
-
-@Composable
-fun wakeDevice() = ListSetting(
-    title = stringResource(R.string.pref_wake_method),
-    icon = Icons.Default.Hearing,
-    description = stringResource(R.string.pref_wake_method_summary),
-    possibleValues = listOf(
-        ListSetting.Value(
-            value = WakeDevice.WAKE_DEVICE_OWW,
-            name = stringResource(R.string.pref_wake_method_openwakeword),
-        ),
-        ListSetting.Value(
-            value = WakeDevice.WAKE_DEVICE_NOTHING,
-            name = stringResource(R.string.pref_wake_method_disabled),
-        )
-    )
-)
-
-@Composable
 fun speechOutputDevice() = ListSetting(
     title = stringResource(R.string.pref_speech_output_method),
     icon = Icons.Default.SpeakerPhone,
@@ -164,34 +100,6 @@ fun speechOutputDevice() = ListSetting(
         ListSetting.Value(
             value = SpeechOutputDevice.SPEECH_OUTPUT_DEVICE_NOTHING,
             name = stringResource(R.string.pref_speech_output_method_nothing),
-        ),
-    ),
-)
-
-@Composable
-fun sttPlaySound() = ListSetting(
-    title = stringResource(R.string.pref_stt_play_sound_title),
-    icon = Icons.Default.Campaign,
-    description = stringResource(R.string.pref_stt_play_sound_summary),
-    possibleValues = listOf(
-        ListSetting.Value(
-            value = SttPlaySound.STT_PLAY_SOUND_NOTIFICATION,
-            name = stringResource(R.string.pref_stt_play_sound_notification),
-            icon = Icons.Default.Notifications,
-        ),
-        ListSetting.Value(
-            value = SttPlaySound.STT_PLAY_SOUND_ALARM,
-            name = stringResource(R.string.pref_stt_play_sound_alarm),
-            icon = Icons.Default.Alarm,
-        ),
-        ListSetting.Value(
-            value = SttPlaySound.STT_PLAY_SOUND_MEDIA,
-            name = stringResource(R.string.pref_stt_play_sound_media),
-            icon = Icons.Default.MusicNote,
-        ),
-        ListSetting.Value(
-            value = SttPlaySound.STT_PLAY_SOUND_NONE,
-            name = stringResource(R.string.pref_stt_play_sound_none),
         ),
     ),
 )

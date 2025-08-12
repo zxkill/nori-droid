@@ -1,9 +1,6 @@
 package org.zxkill.nori.settings
 
 import android.app.Application
-import android.os.Build
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -12,9 +9,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Extension
-import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -38,13 +33,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.material3.OutlinedTextField
 import androidx.hilt.navigation.compose.hiltViewModel
 import org.zxkill.nori.R
-import org.zxkill.nori.settings.datastore.InputDevice
 import org.zxkill.nori.settings.datastore.Language
 import org.zxkill.nori.settings.datastore.SpeechOutputDevice
-import org.zxkill.nori.settings.datastore.SttPlaySound
 import org.zxkill.nori.settings.datastore.Theme
 import org.zxkill.nori.settings.datastore.UserSettingsModule.Companion.newDataStoreForPreviews
-import org.zxkill.nori.settings.datastore.WakeDevice
 import org.zxkill.nori.settings.ui.SettingsCategoryTitle
 import org.zxkill.nori.settings.ui.SettingsItem
 import org.zxkill.nori.ui.theme.AppTheme
@@ -80,11 +72,6 @@ private fun MainSettingsScreen(
     modifier: Modifier = Modifier,
 ) {
     val settings by viewModel.settingsState.collectAsState()
-    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) {
-        if (it != null) {
-            viewModel.addOwwUserWakeFile(it)
-        }
-    }
 
     LazyColumn(modifier) {
         /* GENERAL SETTINGS */
@@ -106,14 +93,6 @@ private fun MainSettingsScreen(
                 },
                 viewModel::setTheme,
             )
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            item {
-                dynamicColors().Render(
-                    settings.dynamicColors,
-                    viewModel::setDynamicColors
-                )
-            }
         }
         item {
             // Пользователь может задать, сколько секунд показывать ответ
@@ -153,50 +132,6 @@ private fun MainSettingsScreen(
         /* INPUT AND OUTPUT METHODS */
         item { SettingsCategoryTitle(stringResource(R.string.pref_io)) }
         item {
-            inputDevice().Render(
-                when (val inputDevice = settings.inputDevice) {
-                    InputDevice.UNRECOGNIZED,
-                    InputDevice.INPUT_DEVICE_UNSET -> InputDevice.INPUT_DEVICE_VOSK
-                    else -> inputDevice
-                },
-                viewModel::setInputDevice,
-            )
-        }
-        val wakeDevice = when (val device = settings.wakeDevice) {
-            WakeDevice.UNRECOGNIZED,
-            WakeDevice.WAKE_DEVICE_UNSET -> WakeDevice.WAKE_DEVICE_OWW
-            else -> device
-        }
-        item {
-            wakeDevice().Render(
-                wakeDevice,
-                viewModel::setWakeDevice,
-            )
-        }
-        if (wakeDevice == WakeDevice.WAKE_DEVICE_OWW) {
-            /* OpenWakeWord-specific settings */
-            item {
-                val isHeyNori by viewModel.isHeyNori.collectAsState(true)
-                if (isHeyNori) {
-                    // the wake word is "Hey Nori", so there is no custom model at the moment
-                    SettingsItem(
-                        modifier = Modifier.clickable { importLauncher.launch(arrayOf("*/*")) },
-                        title = stringResource(R.string.pref_wake_custom_import),
-                        icon = Icons.Default.UploadFile,
-                        description = stringResource(R.string.pref_wake_custom_import_summary_oww),
-                    )
-                } else {
-                    // a custom model is currently set, give the option to remove it
-                    SettingsItem(
-                        modifier = Modifier.clickable { viewModel.removeOwwUserWakeFile() },
-                        title = stringResource(R.string.pref_wake_custom_delete),
-                        icon = Icons.Default.DeleteSweep,
-                        description = stringResource(R.string.pref_wake_custom_delete_summary),
-                    )
-                }
-            }
-        }
-        item {
             speechOutputDevice().Render(
                 when (val speechOutputDevice = settings.speechOutputDevice) {
                     SpeechOutputDevice.UNRECOGNIZED,
@@ -205,16 +140,6 @@ private fun MainSettingsScreen(
                     else -> speechOutputDevice
                 },
                 viewModel::setSpeechOutputDevice,
-            )
-        }
-        item {
-            sttPlaySound().Render(
-                when (val sttPlaySound = settings.sttPlaySound) {
-                    SttPlaySound.UNRECOGNIZED,
-                    SttPlaySound.STT_PLAY_SOUND_UNSET -> SttPlaySound.STT_PLAY_SOUND_NOTIFICATION
-                    else -> sttPlaySound
-                },
-                viewModel::setSttPlaySound
             )
         }
         item {
@@ -234,7 +159,6 @@ private fun MainSettingsScreenPreview() {
                 navigateToSkillSettings = {},
                 viewModel = MainSettingsViewModel(
                     application = Application(),
-                    wakeDeviceWrapper = null,
                     dataStore = newDataStoreForPreviews(),
                 ),
             )
@@ -261,7 +185,6 @@ private fun MainSettingsScreenWithTopBarPreview() {
                 navigateToSkillSettings = {},
                 viewModel = MainSettingsViewModel(
                     application = Application(),
-                    wakeDeviceWrapper = null,
                     dataStore = newDataStoreForPreviews()
                 )
             )

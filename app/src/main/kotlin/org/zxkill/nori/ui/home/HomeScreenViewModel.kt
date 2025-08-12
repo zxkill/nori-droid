@@ -9,7 +9,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
-import org.nori.skill.context.SkillContext
 import org.zxkill.nori.di.SkillContextInternal
 import org.zxkill.nori.di.SpeechOutputDeviceWrapper
 import org.zxkill.nori.di.SttInputDeviceWrapper
@@ -20,8 +19,6 @@ import org.zxkill.nori.eval.SkillHandler
 import org.zxkill.nori.io.input.SttState
 import org.zxkill.nori.io.speech.SnackbarSpeechDevice
 import org.zxkill.nori.settings.datastore.UserSettings
-import org.zxkill.nori.settings.datastore.WakeDevice
-import org.zxkill.nori.settings.datastore.copy
 import javax.inject.Inject
 
 /**
@@ -35,11 +32,11 @@ class HomeScreenViewModel @Inject constructor(
       val skillHandler: SkillHandler,
       // Сервис, который выполняет авто-скиллы и отдаёт их результаты
       autoSkillRunner: AutoSkillRunner,
-    val dataStore: DataStore<UserSettings>,
     val sttInputDevice: SttInputDeviceWrapper,
     val speechOutputDevice: SpeechOutputDeviceWrapper,
     val wakeDevice: WakeDeviceWrapper,
     val skillEvaluator: SkillEvaluator,
+    val dataStore: DataStore<UserSettings>,
     // this is always instantiated, but will do nothing if
     // it is not the speech device chosen by the user
     snackbarSpeechDevice: SnackbarSpeechDevice,
@@ -77,10 +74,6 @@ class HomeScreenViewModel @Inject constructor(
     }
 
     fun disableWakeWord() {
-        viewModelScope.launch {
-            dataStore.updateData {
-                it.copy { wakeDevice = WakeDevice.WAKE_DEVICE_NOTHING }
-            }
-        }
+        // Wake word method setting removed; nothing to disable.
     }
 }
