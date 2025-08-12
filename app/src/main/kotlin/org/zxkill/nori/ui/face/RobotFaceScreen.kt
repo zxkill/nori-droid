@@ -63,11 +63,14 @@ fun RobotFaceScreen(
     // Настройки пользователя, где хранится длительность отображения
     val settings by viewModel.dataStore.data.collectAsState(initial = UserSettings.getDefaultInstance())
     val displaySeconds = if (settings.skillOutputDisplaySeconds > 0) settings.skillOutputDisplaySeconds else 10
+    // Флаг из настроек: нужно ли отображать превью камеры для отладки
     val faceDebug = settings.faceTrackingDebug
 
     // Состояние глаз и видимого вывода
     val eyesState = rememberEyesState()
     var visibleOutput by remember { mutableStateOf<SkillOutput?>(null) }
+    // Запускаем трекинг лица. Превью камеры показываем только,
+    // когда включён режим отладки и на экране нет вывода скилла
     val tracker = rememberFaceTracker(debug = faceDebug && visibleOutput == null, eyesState = eyesState)
 
     // Текущее состояние устройства распознавания речи

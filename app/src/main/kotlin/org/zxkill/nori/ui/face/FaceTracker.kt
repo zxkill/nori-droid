@@ -31,14 +31,30 @@ import com.google.mlkit.vision.pose.defaults.PoseDetectorOptions
 import org.zxkill.nori.ui.eyes.EyesState
 import java.util.concurrent.Executors
 
+/**
+ * Состояние и вспомогательные классы для трекинга лица.
+ * Камера работает постоянно, а вычисленные смещения передаются
+ * в [EyesState], чтобы глаза "смотрели" на пользователя.
+ */
 @Stable
 class FaceTrackerState internal constructor(
+    /** Видоискатель для отображения превью камеры в режиме отладки */
     val previewView: PreviewView,
+    /** Рамка найденного лица в координатах исходного изображения */
     val faceBox: MutableState<Rect?>,
+    /** Размер текущего кадра камеры */
     val imageSize: MutableState<Pair<Int, Int>?>,
+    /** Смещения по осям yaw/pitch в градусах (для вывода в отладке) */
     val offsets: MutableState<Pair<Float, Float>?>,
 )
 
+/**
+ * Создаёт и запускает трекер лица. Даже если [debug] отключён,
+ * камера и анализ продолжают работать, просто превью не выводится на экран.
+ *
+ * @param debug     показывать ли отладочный вид с превью камеры
+ * @param eyesState состояние глаз, куда передаются рассчитанные смещения
+ */
 @Composable
 fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState {
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -68,18 +84,23 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
                 .build()
         )
         val analysis = ImageAnalysis.Builder()
+            // Берём только последний кадр, чтобы не накапливать очередь
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .build()
         analysis.setAnalyzer(executor) { imageProxy ->
+            // Анализ каждого кадра выполняется в отдельном потоке
             val mediaImage = imageProxy.image
             if (mediaImage != null) {
                 val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
+                // Сначала пытаемся обнаружить лицо
                 detector.process(image)
                     .addOnSuccessListener { faces ->
+                        // Выбираем самое крупное лицо в кадре
                         val face = faces.maxByOrNull { it.boundingBox.width() * it.boundingBox.height() }
                         if (face != null) {
                             state.imageSize.value = Pair(image.width, image.height)
                             val box = face.boundingBox
+                            // Камера фронтальная, поэтому зеркалим координаты
                             val mirrored = Rect(
                                 image.width - box.right,
                                 box.top,
@@ -87,20 +108,25 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
                                 box.bottom
                             )
                             state.faceBox.value = mirrored
+                            // Нормализуем центр рамки в диапазон [-1,1]
                             val cx = mirrored.exactCenterX()
                             val cy = mirrored.exactCenterY()
                             val px = image.width.toFloat()
                             val py = image.height.toFloat()
                             val normX = (cx - px / 2f) / (px / 2f)
                             val normY = (cy - py / 2f) / (py / 2f)
+                            // Увеличиваем амплитуду и ограничиваем диапазон
                             val targetX = (-normX * 1.5f).coerceIn(-1f, 1f)
                             val targetY = (-normY * 1.5f).coerceIn(-1f, 1f)
+                            // Плавно приближаем текущий взгляд к целевому
                             val smoothX = eyesState.lookX + (targetX - eyesState.lookX) * SMOOTHING
                             val smoothY = eyesState.lookY + (targetY - eyesState.lookY) * SMOOTHING
+                            // Сохраняем углы отклонения для отладки
                             state.offsets.value = Pair(smoothX * FOV_DEG_X / 2f, smoothY * FOV_DEG_Y / 2f)
                             eyesState.lookAt(smoothX, smoothY)
                             imageProxy.close()
                         } else {
+                            // Если лиц не найдено, пробуем использовать детектор поз
                             poseDetector.process(image)
                                 .addOnSuccessListener { pose ->
                                     val lEar = pose.getPoseLandmark(PoseLandmark.LEFT_EAR)
@@ -110,6 +136,7 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
                                         .filter { it.inFrameLikelihood >= POSE_MIN_VIS }
                                     if (landmarks.size >= 2) {
                                         state.imageSize.value = Pair(image.width, image.height)
+                                        // По видимым точкам головы формируем грубую рамку
                                         val xs = landmarks.map { it.position.x }
                                         val ys = landmarks.map { it.position.y }
                                         val xMin = xs.minOrNull()!!
@@ -136,6 +163,7 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
                                         state.offsets.value = Pair(smoothX * FOV_DEG_X / 2f, smoothY * FOV_DEG_Y / 2f)
                                         eyesState.lookAt(smoothX, smoothY)
                                     } else {
+                                        // Голова не найдена — сбрасываем состояние
                                         state.faceBox.value = null
                                         state.imageSize.value = null
                                         state.offsets.value = null
@@ -176,6 +204,11 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
     return state
 }
 
+/**
+ * Отладочный элемент: показывает превью камеры с рамкой найденного лица
+ * и рассчитанными углами поворота. Используется только по желанию
+ * пользователя, чтобы убедиться, что трекинг работает корректно.
+ */
 @Composable
 fun FaceDebugView(state: FaceTrackerState, modifier: Modifier = Modifier) {
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
@@ -207,8 +240,11 @@ fun FaceDebugView(state: FaceTrackerState, modifier: Modifier = Modifier) {
     }
 }
 
+// Приближённые углы обзора фронтальной камеры в градусах
 private const val FOV_DEG_X = 62f
 private const val FOV_DEG_Y = 38f
+// Минимальная уверенность детектора поз для учета landmark
 private const val POSE_MIN_VIS = 0.8f
+// Коэффициент плавности перемещения взгляда
 private const val SMOOTHING = 0.4f
 

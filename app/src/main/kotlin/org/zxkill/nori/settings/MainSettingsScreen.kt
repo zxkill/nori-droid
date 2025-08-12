@@ -121,6 +121,7 @@ private fun MainSettingsScreen(
             )
         }
         item {
+            // Переключатель отображения превью камеры для отладки трекинга лица
             BooleanSetting(
                 title = stringResource(R.string.pref_face_debug_title),
                 icon = Icons.Default.Face,
