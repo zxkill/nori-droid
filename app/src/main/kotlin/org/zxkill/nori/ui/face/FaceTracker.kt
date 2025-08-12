@@ -1,7 +1,6 @@
 package org.zxkill.nori.ui.face
 
 import android.graphics.Rect
-import android.util.Size
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
@@ -50,8 +49,15 @@ class FaceTrackerState internal constructor(
 )
 
 /**
- * Создаёт и запускает трекер лица. Даже если [debug] отключён,
- * камера и анализ продолжают работать, просто превью не выводится на экран.
+ * Создаёт и запускает трекер лица.
+ *
+ * Трекер настроен на максимальную эффективность:
+ *  - детектор лица работает в быстром режиме без лишних опций;
+ *  - кадры анализируются в разрешении 640×480;
+ *  - обрабатывается лишь каждый второй кадр, остальные игнорируются;
+ *  - если предыдущий кадр ещё в работе, следующий сразу закрывается.
+ * Даже при отключённом [debug] камера и анализ продолжают работать,
+ * просто превью не выводится на экран.
  *
  * @param debug     показывать ли отладочный вид с превью камеры
  * @param eyesState состояние глаз, куда передаются рассчитанные смещения
@@ -76,6 +82,7 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
         val executor = Executors.newSingleThreadExecutor()
         val detector = FaceDetection.getClient(
             FaceDetectorOptions.Builder()
+                // Быстрый режим и отключение лишних фич экономят батарею
                 .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
                 .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_NONE)
                 .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_NONE)
@@ -84,18 +91,25 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
         )
         val poseDetector = PoseDetection.getClient(
             PoseDetectorOptions.Builder()
+                // Потоковый режим — для быстрого отклика при непрерывном анализе
                 .setDetectorMode(PoseDetectorOptions.STREAM_MODE)
                 .build()
         )
+        // Время последнего обнаружения лица (для авто-режима)
         var lastSeen = System.currentTimeMillis()
+        // Флаг показывает, что текущий кадр ещё анализируется
         var isProcessing = false
+        // Счётчик кадров, чтобы обрабатывать лишь каждый второй
         var frameCounter = 0
         val analysis = ImageAnalysis.Builder()
-            .setTargetResolution(Size(640, 480))
+            // Устанавливаем невысокое разрешение кадра для снижения нагрузки
+            .setTargetResolution(android.util.Size(640, 480))
             // Берём только последний кадр, чтобы не накапливать очередь
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .build()
         analysis.setAnalyzer(executor) { imageProxy ->
+            // Если предыдущий кадр ещё обрабатывается или это нечётный кадр,
+            // сразу его закрываем, тем самым сокращая частоту анализа
             if (isProcessing || frameCounter++ % 2 != 0) {
                 imageProxy.close()
                 return@setAnalyzer
@@ -107,9 +121,11 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
                 val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
                 fun handleNoFace() {
                     val now = System.currentTimeMillis()
+                    // Если лицо не появляется дольше секунды, включаем авто-режим
                     if (now - lastSeen > 1_000L) {
                         eyesState.setAutoMode(true)
                     }
+                    // Сбрасываем отладочные данные
                     state.faceBox.value = null
                     state.imageSize.value = null
                     state.offsets.value = null
