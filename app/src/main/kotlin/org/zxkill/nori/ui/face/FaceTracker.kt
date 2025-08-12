@@ -117,7 +117,8 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
                             val normY = (cy - py / 2f) / (py / 2f)
                             // Увеличиваем амплитуду и ограничиваем диапазон
                             val targetX = (-normX * 1.5f).coerceIn(-1f, 1f)
-                            val targetY = (-normY * 1.5f).coerceIn(-1f, 1f)
+                            // По вертикали оставляем естественный знак, чтобы взгляд следовал за положением головы
+                            val targetY = (normY * 1.5f).coerceIn(-1f, 1f)
                             // Плавно приближаем текущий взгляд к целевому
                             val smoothX = eyesState.lookX + (targetX - eyesState.lookX) * SMOOTHING
                             val smoothY = eyesState.lookY + (targetY - eyesState.lookY) * SMOOTHING
@@ -157,7 +158,8 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
                                         val normX = (cx - px / 2f) / (px / 2f)
                                         val normY = (cy - py / 2f) / (py / 2f)
                                         val targetX = (-normX * 1.5f).coerceIn(-1f, 1f)
-                                        val targetY = (-normY * 1.5f).coerceIn(-1f, 1f)
+                                        // По вертикали знак не инвертируем, чтобы глаза повторяли движение головы
+                                        val targetY = (normY * 1.5f).coerceIn(-1f, 1f)
                                         val smoothX = eyesState.lookX + (targetX - eyesState.lookX) * SMOOTHING
                                         val smoothY = eyesState.lookY + (targetY - eyesState.lookY) * SMOOTHING
                                         state.offsets.value = Pair(smoothX * FOV_DEG_X / 2f, smoothY * FOV_DEG_Y / 2f)
