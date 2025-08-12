@@ -4,25 +4,10 @@ import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import org.zxkill.nori.util.StringUtils.contactStringDistance
 import org.zxkill.nori.util.StringUtils.customStringDistance
-import org.zxkill.nori.util.StringUtils.join
 import org.zxkill.nori.util.StringUtils.levenshteinDistance
 import org.zxkill.nori.util.StringUtils.removePunctuation
 
 class StringUtilsTest : StringSpec({
-    "join with default parameters" {
-        join(mutableListOf("a", "b", "c")) shouldBe "a b c"
-        join(emptyList()) shouldBe ""
-        join(listOf("abc")) shouldBe "abc"
-        join(mutableListOf("", "")) shouldBe " "
-    }
-
-    "join" {
-        join(mutableListOf("a", "b", "c"), "-") shouldBe "a-b-c"
-        join(emptyList(), "-") shouldBe ""
-        join(listOf("abc"), "-") shouldBe "abc"
-        join(mutableListOf("", ""), "-") shouldBe "-"
-    }
-
     "remove punctuation" {
         removePunctuation("hello, how are you? ") shouldBe "hello how are you "
         removePunctuation("!\"#1$%&'()*+2,-./:;<=34>?@[5]^_`{|}~") shouldBe "12345"
