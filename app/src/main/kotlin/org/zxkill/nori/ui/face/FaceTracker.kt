@@ -83,6 +83,7 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
                 .setDetectorMode(PoseDetectorOptions.STREAM_MODE)
                 .build()
         )
+        var lastSeen = System.currentTimeMillis()
         val analysis = ImageAnalysis.Builder()
             // Берём только последний кадр, чтобы не накапливать очередь
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
@@ -92,12 +93,23 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
             val mediaImage = imageProxy.image
             if (mediaImage != null) {
                 val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
+                fun handleNoFace() {
+                    val now = System.currentTimeMillis()
+                    if (now - lastSeen > 1_000L) {
+                        eyesState.setAutoMode(true)
+                    }
+                    state.faceBox.value = null
+                    state.imageSize.value = null
+                    state.offsets.value = null
+                }
                 // Сначала пытаемся обнаружить лицо
                 detector.process(image)
                     .addOnSuccessListener { faces ->
                         // Выбираем самое крупное лицо в кадре
                         val face = faces.maxByOrNull { it.boundingBox.width() * it.boundingBox.height() }
                         if (face != null) {
+                            lastSeen = System.currentTimeMillis()
+                            eyesState.setAutoMode(false)
                             state.imageSize.value = Pair(image.width, image.height)
                             val box = face.boundingBox
                             // Камера фронтальная, поэтому зеркалим координаты
@@ -137,6 +149,8 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
                                     val landmarks = listOfNotNull(lEar, rEar, nose)
                                         .filter { it.inFrameLikelihood >= POSE_MIN_VIS }
                                     if (landmarks.size >= 2) {
+                                        lastSeen = System.currentTimeMillis()
+                                        eyesState.setAutoMode(false)
                                         state.imageSize.value = Pair(image.width, image.height)
                                         // По видимым точкам головы формируем грубую рамку
                                         val xs = landmarks.map { it.position.x }
@@ -168,15 +182,17 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
                                         eyesState.lookAt(smoothX, smoothY)
                                     } else {
                                         // Голова не найдена — сбрасываем состояние
-                                        state.faceBox.value = null
-                                        state.imageSize.value = null
-                                        state.offsets.value = null
+                                        handleNoFace()
                                     }
                                 }
+                                .addOnFailureListener { handleNoFace() }
                                 .addOnCompleteListener { imageProxy.close() }
                         }
                     }
-                    .addOnFailureListener { imageProxy.close() }
+                    .addOnFailureListener {
+                        handleNoFace()
+                        imageProxy.close()
+                    }
             } else {
                 imageProxy.close()
             }
