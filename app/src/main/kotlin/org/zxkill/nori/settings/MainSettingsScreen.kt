@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.Face
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -39,6 +40,7 @@ import org.zxkill.nori.settings.datastore.Theme
 import org.zxkill.nori.settings.datastore.UserSettingsModule.Companion.newDataStoreForPreviews
 import org.zxkill.nori.settings.ui.SettingsCategoryTitle
 import org.zxkill.nori.settings.ui.SettingsItem
+import org.zxkill.nori.settings.ui.BooleanSetting
 import org.zxkill.nori.ui.theme.AppTheme
 
 
@@ -116,6 +118,17 @@ private fun MainSettingsScreen(
                         modifier = Modifier.width(80.dp)
                     )
                 }
+            )
+        }
+        item {
+            BooleanSetting(
+                title = stringResource(R.string.pref_face_debug_title),
+                icon = Icons.Default.Face,
+                descriptionOff = stringResource(R.string.pref_face_debug_summary_off),
+                descriptionOn = stringResource(R.string.pref_face_debug_summary_on),
+            ).Render(
+                settings.faceTrackingDebug,
+                viewModel::setFaceTrackingDebug,
             )
         }
         item {

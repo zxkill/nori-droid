@@ -26,7 +26,6 @@ import org.zxkill.nori.skills.open.OpenInfo
 import org.zxkill.nori.skills.search.SearchInfo
 import org.zxkill.nori.skills.telephone.TelephoneInfo
 import org.zxkill.nori.skills.weather.WeatherInfo
-import org.zxkill.nori.skills.face_tracker.FaceTrackerInfo
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -44,7 +43,6 @@ class SkillHandler @Inject constructor(
         OpenInfo,
         NavigationInfo,
         TelephoneInfo,
-        FaceTrackerInfo,
         CurrentTimeInfo,
         CurrentDateInfo,
     )
