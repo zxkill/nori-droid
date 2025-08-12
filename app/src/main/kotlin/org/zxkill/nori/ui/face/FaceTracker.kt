@@ -117,9 +117,9 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
                             val normY = (cy - py / 2f) / (py / 2f)
                             // Увеличиваем амплитуду и ограничиваем диапазон
                             val targetX = (-normX * 1.5f).coerceIn(-1f, 1f)
-                            // По вертикали инвертируем знак: в изображении ось Y направлена вниз,
-                            // поэтому для совпадения с движением головы меняем направление
-                            val targetY = (-normY * 1.5f).coerceIn(-1f, 1f)
+                            // По вертикали оставляем исходный знак: при движении головы вверх лицо
+                            // смещается вверх в кадре, поэтому дополнительная инверсия не нужна
+                            val targetY = (normY * 1.5f).coerceIn(-1f, 1f)
                             // Плавно приближаем текущий взгляд к целевому
                             val smoothX = eyesState.lookX + (targetX - eyesState.lookX) * SMOOTHING
                             val smoothY = eyesState.lookY + (targetY - eyesState.lookY) * SMOOTHING
@@ -159,9 +159,9 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
                                         val normX = (cx - px / 2f) / (px / 2f)
                                         val normY = (cy - py / 2f) / (py / 2f)
                                         val targetX = (-normX * 1.5f).coerceIn(-1f, 1f)
-                                        // Ось Y кадра направлена вниз, поэтому инвертируем знак,
-                                        // чтобы глаза следовали за реальным смещением головы
-                                        val targetY = (-normY * 1.5f).coerceIn(-1f, 1f)
+                                        // Ось Y направлена вниз, но при подъёме головы лицо смещается вверх,
+                                        // поэтому используем нормализованное значение без инверсии знака
+                                        val targetY = (normY * 1.5f).coerceIn(-1f, 1f)
                                         val smoothX = eyesState.lookX + (targetX - eyesState.lookX) * SMOOTHING
                                         val smoothY = eyesState.lookY + (targetY - eyesState.lookY) * SMOOTHING
                                         state.offsets.value = Pair(smoothX * FOV_DEG_X / 2f, smoothY * FOV_DEG_Y / 2f)
