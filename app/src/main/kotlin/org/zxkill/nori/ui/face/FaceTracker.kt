@@ -92,9 +92,13 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
                             val px = image.width.toFloat()
                             val py = image.height.toFloat()
                             val normX = (cx - px / 2f) / (px / 2f)
-                            val normY = -(cy - py / 2f) / (py / 2f)
-                            state.offsets.value = Pair(normX * FOV_DEG_X / 2f, normY * FOV_DEG_Y / 2f)
-                            eyesState.lookAt(normX, normY)
+                            val normY = (cy - py / 2f) / (py / 2f)
+                            val targetX = (-normX * 1.5f).coerceIn(-1f, 1f)
+                            val targetY = (-normY * 1.5f).coerceIn(-1f, 1f)
+                            val smoothX = eyesState.lookX + (targetX - eyesState.lookX) * SMOOTHING
+                            val smoothY = eyesState.lookY + (targetY - eyesState.lookY) * SMOOTHING
+                            state.offsets.value = Pair(smoothX * FOV_DEG_X / 2f, smoothY * FOV_DEG_Y / 2f)
+                            eyesState.lookAt(smoothX, smoothY)
                             imageProxy.close()
                         } else {
                             poseDetector.process(image)
@@ -124,9 +128,13 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
                                         val px = image.width.toFloat()
                                         val py = image.height.toFloat()
                                         val normX = (cx - px / 2f) / (px / 2f)
-                                        val normY = -(cy - py / 2f) / (py / 2f)
-                                        state.offsets.value = Pair(normX * FOV_DEG_X / 2f, normY * FOV_DEG_Y / 2f)
-                                        eyesState.lookAt(normX, normY)
+                                        val normY = (cy - py / 2f) / (py / 2f)
+                                        val targetX = (-normX * 1.5f).coerceIn(-1f, 1f)
+                                        val targetY = (-normY * 1.5f).coerceIn(-1f, 1f)
+                                        val smoothX = eyesState.lookX + (targetX - eyesState.lookX) * SMOOTHING
+                                        val smoothY = eyesState.lookY + (targetY - eyesState.lookY) * SMOOTHING
+                                        state.offsets.value = Pair(smoothX * FOV_DEG_X / 2f, smoothY * FOV_DEG_Y / 2f)
+                                        eyesState.lookAt(smoothX, smoothY)
                                     } else {
                                         state.faceBox.value = null
                                         state.imageSize.value = null
@@ -202,4 +210,5 @@ fun FaceDebugView(state: FaceTrackerState, modifier: Modifier = Modifier) {
 private const val FOV_DEG_X = 62f
 private const val FOV_DEG_Y = 38f
 private const val POSE_MIN_VIS = 0.8f
+private const val SMOOTHING = 0.4f
 

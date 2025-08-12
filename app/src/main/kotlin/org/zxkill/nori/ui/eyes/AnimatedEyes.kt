@@ -2,9 +2,11 @@ package org.zxkill.nori.ui.eyes
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -169,10 +171,22 @@ fun AnimatedEyes(
 
     // Плавно переводим взгляд к значениям из состояния
     LaunchedEffect(state.lookX) {
-        lookX.animateTo(state.lookX, tween(durationMillis = 500))
+        lookX.animateTo(
+            state.lookX,
+            spring(
+                stiffness = Spring.StiffnessMedium,
+                dampingRatio = Spring.DampingRatioNoBouncy,
+            ),
+        )
     }
     LaunchedEffect(state.lookY) {
-        lookY.animateTo(state.lookY, tween(durationMillis = 500))
+        lookY.animateTo(
+            state.lookY,
+            spring(
+                stiffness = Spring.StiffnessMedium,
+                dampingRatio = Spring.DampingRatioNoBouncy,
+            ),
+        )
     }
 
     // Периодически задаём новое направление взгляда
