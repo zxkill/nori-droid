@@ -100,6 +100,9 @@ class EyesState {
     private var _lookX by mutableStateOf(0f)
     private var _lookY by mutableStateOf(0f)
 
+    // Режим автоматического движения взгляда
+    private var _autoMode by mutableStateOf(true)
+
     /** Текущая эмоция глаз – доступна только для чтения */
     val expression: EyeExpression
         get() = _expression
@@ -112,6 +115,10 @@ class EyesState {
     val lookY: Float
         get() = _lookY
 
+    /** Включён ли автоматический режим движения */
+    val autoMode: Boolean
+        get() = _autoMode
+
     /** Установить новую эмоцию глаз */
     fun setExpression(newExpression: EyeExpression) {
         _expression = newExpression
@@ -121,6 +128,11 @@ class EyesState {
     fun lookAt(x: Float, y: Float) {
         _lookX = x.coerceIn(-1f, 1f)
         _lookY = y.coerceIn(-1f, 1f)
+    }
+
+    /** Установить режим автоматического движения */
+    fun setAutoMode(enabled: Boolean) {
+        _autoMode = enabled
     }
 }
 
@@ -189,9 +201,9 @@ fun AnimatedEyes(
         )
     }
 
-    // Периодически задаём новое направление взгляда
-    LaunchedEffect(Unit) {
-        while (true) {
+    // Периодически задаём новое направление взгляда, только в автоматическом режиме
+    LaunchedEffect(state.autoMode) {
+        while (state.autoMode) {
             delay(4_000L)
             val x = Random.nextInt(-50, 51) / 100f
             val y = Random.nextInt(-50, 51) / 100f
