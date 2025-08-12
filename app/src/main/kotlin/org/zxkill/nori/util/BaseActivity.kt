@@ -88,18 +88,14 @@ abstract class BaseActivity : ComponentActivity() {
     fun composeSetContent(content: @Composable () -> Unit) {
         setContent {
             val theme = dataStore.data
-                .map { Pair(it.theme, it.dynamicColors) }
+                .map { it.theme }
                 .collectAsState(
                     // run blocking, because we can't start the app if we don't know the theme
-                    initial = runBlocking {
-                        val data = dataStore.data.first()
-                        Pair(data.theme, data.dynamicColors)
-                    }
+                    initial = runBlocking { dataStore.data.first().theme }
                 )
 
             AppTheme(
-                theme = theme.value.first,
-                dynamicColors = theme.value.second,
+                theme = theme.value,
                 content = content,
             )
         }

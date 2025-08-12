@@ -2,7 +2,6 @@ package org.zxkill.nori.ui.home
 
 import android.app.Application
 import androidx.compose.material3.SnackbarHostState
-import androidx.datastore.core.DataStore
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,9 +18,6 @@ import org.zxkill.nori.eval.SkillEvaluator
 import org.zxkill.nori.eval.SkillHandler
 import org.zxkill.nori.io.input.SttState
 import org.zxkill.nori.io.speech.SnackbarSpeechDevice
-import org.zxkill.nori.settings.datastore.UserSettings
-import org.zxkill.nori.settings.datastore.WakeDevice
-import org.zxkill.nori.settings.datastore.copy
 import javax.inject.Inject
 
 /**
@@ -35,7 +31,6 @@ class HomeScreenViewModel @Inject constructor(
       val skillHandler: SkillHandler,
       // Сервис, который выполняет авто-скиллы и отдаёт их результаты
       autoSkillRunner: AutoSkillRunner,
-    val dataStore: DataStore<UserSettings>,
     val sttInputDevice: SttInputDeviceWrapper,
     val speechOutputDevice: SpeechOutputDeviceWrapper,
     val wakeDevice: WakeDeviceWrapper,
@@ -77,10 +72,6 @@ class HomeScreenViewModel @Inject constructor(
     }
 
     fun disableWakeWord() {
-        viewModelScope.launch {
-            dataStore.updateData {
-                it.copy { wakeDevice = WakeDevice.WAKE_DEVICE_NOTHING }
-            }
-        }
+        // Wake word method setting removed; nothing to disable.
     }
 }
