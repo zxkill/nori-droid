@@ -20,7 +20,6 @@ import org.zxkill.nori.skills.telephone.ConfirmCallOutput
 import org.zxkill.nori.skills.telephone.ConfirmedCallOutput
 import org.zxkill.nori.skills.telephone.TelephoneInfo
 import org.zxkill.nori.skills.weather.WeatherInfo
-import org.zxkill.nori.skills.face_tracker.FaceTrackerInfo
 import org.zxkill.nori.ui.home.Interaction
 import org.zxkill.nori.ui.home.InteractionLog
 import org.zxkill.nori.ui.home.PendingQuestion
@@ -38,7 +37,6 @@ class UserInputPreviews : CollectionPreviewParameterProvider<String>(listOf(
 class SkillInfoPreviews : CollectionPreviewParameterProvider<SkillInfo>(listOf(
     WeatherInfo,
     TelephoneInfo,
-    FaceTrackerInfo,
     object : SkillInfo("test") {
         override fun name(context: Context) = "Long name lorem ipsum dolor sit amet, consectetur"
         override fun sentenceExample(context: Context) = "Long sentence ".repeat(20)

@@ -41,4 +41,7 @@ class MainSettingsViewModel @Inject constructor(
     // Устанавливаем время отображения результата скилла
     fun setSkillOutputDisplaySeconds(value: Int) =
         updateData { it.setSkillOutputDisplaySeconds(value) }
+    // Включаем или отключаем отображение превью камеры для отладки
+    fun setFaceTrackingDebug(value: Boolean) =
+        updateData { it.setFaceTrackingDebug(value) }
 }

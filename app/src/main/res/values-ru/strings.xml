@@ -69,8 +69,9 @@
     <string name="pref_weather_default_city_using_ip_info">Укажите город, который будет использоваться для показаний погоды по умолчанию. Если вы не называете город, то текущая настройка пытается определить город автоматически на основании вашего IP адреса.</string>
     <string name="skill_name_weather">Погода</string>
     <string name="pref_weather_default_city">Город по умолчанию</string>
-    <string name="skill_face_tracking_enabled">Трекинг лица включен</string>
-    <string name="skill_face_tracking_disabled">Трекинг лица выключен</string>
+    <string name="pref_face_debug_title">Отладочный вид камеры</string>
+    <string name="pref_face_debug_summary_on">Превью камеры отображается</string>
+    <string name="pref_face_debug_summary_off">Превью камеры скрыто</string>
     <string name="skill_fallback_name_text">Текстовое сообщение</string>
     <string name="skill_open_unknown_app">Неизвестное приложение %1$s</string>
     <string name="eval_network_error">Ошибка связи</string>

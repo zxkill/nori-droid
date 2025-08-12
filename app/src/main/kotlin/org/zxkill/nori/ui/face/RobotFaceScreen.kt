@@ -34,6 +34,7 @@ import org.zxkill.nori.io.wake.WakeService.Companion.TRIGGER_WORD
 import org.zxkill.nori.ui.home.HomeScreenViewModel
 import org.zxkill.nori.ui.home.SttFab
 import org.zxkill.nori.ui.eyes.AnimatedEyes
+import org.zxkill.nori.ui.eyes.EyesState
 import org.zxkill.nori.ui.eyes.rememberEyesState
 import org.zxkill.nori.settings.datastore.UserSettings
 import org.zxkill.nori.util.checkPermissions
@@ -62,9 +63,15 @@ fun RobotFaceScreen(
     // Настройки пользователя, где хранится длительность отображения
     val settings by viewModel.dataStore.data.collectAsState(initial = UserSettings.getDefaultInstance())
     val displaySeconds = if (settings.skillOutputDisplaySeconds > 0) settings.skillOutputDisplaySeconds else 10
+    // Флаг из настроек: нужно ли отображать превью камеры для отладки
+    val faceDebug = settings.faceTrackingDebug
 
-    // Состояние видимого вывода
+    // Состояние глаз и видимого вывода
+    val eyesState = rememberEyesState()
     var visibleOutput by remember { mutableStateOf<SkillOutput?>(null) }
+    // Запускаем трекинг лица. Превью камеры показываем только,
+    // когда включён режим отладки и на экране нет вывода скилла
+    val tracker = rememberFaceTracker(debug = faceDebug && visibleOutput == null, eyesState = eyesState)
 
     // Текущее состояние устройства распознавания речи
       val sttState by viewModel.sttInputDevice.uiState.collectAsState()
@@ -181,9 +188,28 @@ fun RobotFaceScreen(
         }
 
         if (visibleOutput == null) {
-            // Слушаем пользователя — глаза по центру
-            // Отображаем крупные глаза по центру, когда вывод скилла отсутствует
-            RobotEyes(modifier = Modifier.align(Alignment.Center))
+            if (faceDebug) {
+                Row(modifier = Modifier.fillMaxSize()) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        RobotEyes(eyesState = eyesState)
+                    }
+                    FaceDebugView(
+                        state = tracker,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight(),
+                    )
+                }
+            } else {
+                // Слушаем пользователя — глаза по центру
+                // Отображаем крупные глаза по центру, когда вывод скилла отсутствует
+                RobotEyes(eyesState = eyesState, modifier = Modifier.align(Alignment.Center))
+            }
         } else {
             // Делим экран: глаза слева, вывод скилла справа
             Row(modifier = Modifier.fillMaxSize()) {
@@ -195,7 +221,7 @@ fun RobotFaceScreen(
                 ) {
                     // При показе ответа скилла глаза занимают лишь половину экрана,
                     // поэтому уменьшаем их размер для визуального баланса
-                    RobotEyes(compact = true)
+                    RobotEyes(eyesState = eyesState, compact = true)
                 }
                 Box(
                     modifier = Modifier
@@ -238,9 +264,11 @@ fun RobotFaceScreen(
  *                когда экран поделён между глазами и выводом скилла
  */
 @Composable
-fun RobotEyes(modifier: Modifier = Modifier, compact: Boolean = false) {
-    val eyesState = rememberEyesState()
-
+fun RobotEyes(
+    eyesState: org.zxkill.nori.ui.eyes.EyesState = rememberEyesState(),
+    modifier: Modifier = Modifier,
+    compact: Boolean = false,
+) {
     // В зависимости от режима выбираем высоту области рисования глаз.
     // В обычном состоянии глаза крупнее (120dp), а в "компактном" режиме – меньше.
     val size = if (compact) 60.dp else 120.dp
