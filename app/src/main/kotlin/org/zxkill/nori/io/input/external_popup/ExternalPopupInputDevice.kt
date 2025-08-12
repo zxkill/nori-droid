@@ -97,7 +97,7 @@ class ExternalPopupInputDevice(
     }
 
     private fun getIntent(): Intent {
-        // Unfortunately the user could choose Nori itself (starting SttPopupActivity), but there
+        // Unfortunately the user could choose Nori itself, but there
         // is no way to avoid this unless we use an Intent.createChooser() with
         // `EXTRA_EXCLUDE_COMPONENTS`. A chooser, however, wouldn't allow the user to press
         // "Always"/"Just once", and also wouldn't make it possible to check for availability like

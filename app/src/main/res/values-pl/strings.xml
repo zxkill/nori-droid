@@ -103,12 +103,8 @@
     <string name="android_tts_error">Wystąpił błąd przy inicjalizacii silnika zamiany tekstu na mowę Androida</string>
     <string name="error_crash_log_headline">Dziennik awarii:</string>
     <string name="skill_navigation_specify_where">Określ miejsce, do którego ma prowadzić nawigacja</string>
-    <string name="pref_stt_auto_finish_title">Bezpośrednie przesłanie wyniku rozpoznawania mowy do powiadomienia</string>
-    <string name="pref_stt_auto_finish_summary_on">Automatyczne wysyłanie wyników mowy do aplikacji żądającej po zakończeniu odsłuchu</string>
-    <string name="pref_stt_auto_finish_summary_off">Poczekaj na ręczne potwierdzenie przed wysłaniem wyniku mowy do żądającej aplikacji</string>
     <string name="stt_say_something">Powiedz coś…</string>
     <string name="stt_did_not_understand">Nie mogłem zrozumieć, spróbuj ponownie</string>
-    <string name="stt_popup">Usługa zamiany mowy na tekst</string>
     <string name="skill_name_navigation">Nawigacja</string>
     <string name="skill_sentence_example_navigation">Nawiguj do międzynarodowego lotniska w Vancouver</string>
     <string name="skill_navigation_navigating_to">Nawigacja do %1$s</string>

@@ -105,9 +105,6 @@
     <string name="pref_search_engine_duckduckgo" translatable="false">DuckDuckGo</string>
     <string name="pref_weather_default_city">Default city</string>
     <string name="pref_weather_default_city_using_ip_info">Set the city to use for weather when you do not explicitly say one. The current behaviour is to get the location from IP info.</string>
-    <string name="pref_stt_auto_finish_title">Directly send result of speech to text popup</string>
-    <string name="pref_stt_auto_finish_summary_on">Automatically send speech result to requesting app when listening finishes</string>
-    <string name="pref_stt_auto_finish_summary_off">Wait for manual confirmation before sending speech result to requesting app</string>
     <string name="pref_dynamic_colors_title">Dynamic colors</string>
     <string name="pref_dynamic_colors_summary">Use the Material You dynamic colors provided by the system</string>
     <string name="pref_skill_output_display_time_title">Skill output display time</string>
@@ -130,7 +127,6 @@
     <string name="eval_no_match_repeat">Could you repeat?</string>
     <string name="stt_say_something">Say something…</string>
     <string name="stt_did_not_understand">I could not understand, try again</string>
-    <string name="stt_popup">Speech to text popup</string>
     <string name="skill_name_search">Search</string>
     <string name="skill_sentence_example_search">Search how to feed a cat</string>
     <string name="skill_name_weather">Weather</string>

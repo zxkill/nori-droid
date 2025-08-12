@@ -5,7 +5,6 @@
     <string name="pref_skill_missing_permissions">இந்த அனுமதிகள் தேவை: %1$s</string>
     <string name="pref_search_engine">தேடுபொறி</string>
     <string name="pref_weather_default_city">இயல்புநிலை நகரம்</string>
-    <string name="pref_stt_auto_finish_summary_on">கேட்கும் போது பயன்பாட்டைக் கோருவதற்கு தானாக பேச்சு முடிவை அனுப்பவும்</string>
     <string name="skill_search_no_results">தேடல் எந்த முடிவுகளையும் திருப்பித் தரவில்லை, நீங்கள் தேட விரும்புவதை மீண்டும் என்னிடம் சொல்ல முயற்சிக்கவும்</string>
     <string name="skill_weather_description_temperature">%1$s · %2$d%3$s</string>
     <string name="skill_lyrics_song_not_found">%1$s பாடல் கண்டுபிடிக்க முடியவில்லை</string>
@@ -101,8 +100,6 @@
     <string name="pref_skill_grant_permissions">மானியம்</string>
     <string name="pref_skill_number_library_not_available">நூலகத்தை பாகுபடுத்துதல் மற்றும் வடிவமைத்தல் <i> டிசியோ-எண்கள் </i> உங்கள் மொழியில் இன்னும் மொழிபெயர்க்கப்படவில்லை, அதாவது எண்கள், காலம் மற்றும் தேதிகள் தொடர்பான அனைத்து திறன்களும் கிடைக்கவில்லை. <b> தயவுசெய்து பங்களிக்கவும் </b> இங்கே தட்டுவதன் மூலம் உங்களால் முடிந்தால்!</string>
     <string name="pref_weather_default_city_using_ip_info">நீங்கள் ஒன்றை வெளிப்படையாகச் சொல்லாதபோது வானிலைக்கு பயன்படுத்த நகரத்தை அமைக்கவும். தற்போதைய நடத்தை ஐபி தகவலிலிருந்து இருப்பிடத்தைப் பெறுவதாகும்.</string>
-    <string name="pref_stt_auto_finish_title">உரையின் முடிவை நேரடியாக உரை பாப்அப்பிற்கு அனுப்பவும்</string>
-    <string name="pref_stt_auto_finish_summary_off">பயன்பாட்டைக் கோருவதற்கு பேச்சு முடிவை அனுப்புவதற்கு முன் கையேடு உறுதிப்படுத்தலுக்காக காத்திருங்கள்</string>
     <string name="pref_dynamic_colors_title">மாறும் வண்ணங்கள்</string>
     <string name="pref_dynamic_colors_summary">கணினியால் வழங்கப்பட்ட மாறும் வண்ணங்களைப் பயன்படுத்தவும்</string>
     <string name="pref_stt_play_sound_title">கேட்கத் தொடங்கும் போது ஒலி விளையாடுங்கள்</string>
@@ -119,7 +116,6 @@
     <string name="eval_no_match">எனக்குப் புரியவில்லை</string>
     <string name="stt_say_something">ஏதாவது சொல்லுங்கள்…</string>
     <string name="stt_did_not_understand">என்னால் புரிந்து கொள்ள முடியவில்லை, மீண்டும் முயற்சிக்கவும்</string>
-    <string name="stt_popup">உரை பாப்அப்பிற்கு பேச்சு</string>
     <string name="skill_name_search">தேடல்</string>
     <string name="skill_sentence_example_search">ஒரு பூனைக்கு எப்படி உணவளிக்க வேண்டும் என்பதைத் தேடுங்கள்</string>
     <string name="skill_name_weather">வானிலை</string>

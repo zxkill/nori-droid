@@ -107,12 +107,8 @@
     <string name="skill_time_current_time">Ara son les %1$s</string>
     <string name="skill_name_current_time">Hora actual</string>
     <string name="skill_sentence_example_current_time">Quina hora es\?</string>
-    <string name="pref_stt_auto_finish_summary_on">Envia automaticament l\'enregistrament de veu un cop finalitzat, a l\'aplicació</string>
-    <string name="pref_stt_auto_finish_summary_off">Espera una confirmació manual abans d\'enviar l\'enregistrament de veu a l\'aplicació</string>
-    <string name="pref_stt_auto_finish_title">Envia directament el resultat del servei de veu a text</string>
     <string name="stt_say_something">Digueu alguna cosa…</string>
     <string name="stt_did_not_understand">No us he entès, si us plau, repetiu</string>
-    <string name="stt_popup">Servei de reconeixement de veu</string>
     <string name="skill_name_navigation">Navegació</string>
     <string name="skill_sentence_example_navigation">Navegar a l\'aeroport del Prat</string>
     <string name="skill_navigation_specify_where">Especifiqueu on voleu anar</string>

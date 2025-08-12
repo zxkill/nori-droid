@@ -74,6 +74,4 @@ class MainSettingsViewModel @Inject constructor(
     // Устанавливаем время отображения результата скилла
     fun setSkillOutputDisplaySeconds(value: Int) =
         updateData { it.setSkillOutputDisplaySeconds(value) }
-    fun setAutoFinishSttPopup(value: Boolean) =
-        updateData { it.setAutoFinishSttPopup(value) }
 }

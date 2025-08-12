@@ -77,9 +77,6 @@ class UserSettingsModule {
                             else -> SpeechOutputDevice.SPEECH_OUTPUT_DEVICE_UNSET
                         }
                     )
-                    .setAutoFinishSttPopup(
-                        prefs.getBoolean("stt_auto_finish", true)
-                    )
                     .build()
             }
         }

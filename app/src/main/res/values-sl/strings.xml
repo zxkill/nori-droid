@@ -43,7 +43,6 @@
     <string name="error_crash_log_headline">Poročilo o sesutju:</string>
     <string name="error_github_notice">Preverite, ali že obstaja težava, ki obravnava vaše sesutje. Ko ustvarite podvojene vstopnice, nam vzamete čas, ki bi ga lahko porabili za odpravo dejanske napake.</string>
     <string name="pref_skill_not_available">Ta sposobnost še ni na voljo v tvojem jeziku. Prispevanje je dobrodošlo!</string>
-    <string name="stt_popup">Storitev pretvorbe govora v besedilo</string>
     <string name="pref_language_system">Uporabi sistemski jezik</string>
     <string name="pref_input_method">Vhodna metoda</string>
     <string name="pref_input_method_summary">Izberi metodo za pogovor z Norim</string>
@@ -57,9 +56,6 @@
     <string name="pref_search_engine">Iskalnik</string>
     <string name="pref_weather_default_city">Privzeto mesto</string>
     <string name="pref_weather_default_city_using_ip_info">Nastavite mesto za uporabo pri vremenu, ko točno ne poveste enega. Trenutna nastavitev je, da dobimo lokacijo preko IP naslova.</string>
-    <string name="pref_stt_auto_finish_title">Takoj pošljite rezultate storitve govor v besedilo</string>
-    <string name="pref_stt_auto_finish_summary_on">Avtomatsko pošlji rezultat govora v zahtevano aplikacijo, ko se poslušanje konča</string>
-    <string name="pref_stt_auto_finish_summary_off">Počakajte na ročno potrditev preden pošiljate govorni rezultat v zatevano aplikacijo</string>
     <string name="eval_missing_permissions">Sposobnost \"%1$s\" potrebuje naslednja dovoljenja za delovanje: %2$s</string>
     <string name="eval_fatal_error">Ne moremo izračunati tvojih želj</string>
     <string name="eval_network_error">Napaka pri povezavi z internetom</string>

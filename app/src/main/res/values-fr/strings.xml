@@ -102,12 +102,8 @@
     <string name="skill_time_current_time">Actuellement, il est %1$s</string>
     <string name="skill_name_current_time">Heure actuelle</string>
     <string name="skill_sentence_example_current_time">Quelle heure est-il ?</string>
-    <string name="pref_stt_auto_finish_summary_off">Attend une confirmation manuelle avant d’envoyer le résultat de la reconnaissance vocale à l’application qui le demande</string>
     <string name="stt_say_something">Dites quelque chose…</string>
     <string name="stt_did_not_understand">Je n’ai pas compris, réessayez</string>
-    <string name="stt_popup">Popup de synthèse vocale</string>
-    <string name="pref_stt_auto_finish_title">Envoyer directement le résultat de la reconnaissance vocale à la fenêtre de texte</string>
-    <string name="pref_stt_auto_finish_summary_on">Envoie automatiquement le résultat de la reconnaissance vocale à l’application qui le demande</string>
     <string name="skill_name_navigation">Navigation</string>
     <string name="skill_sentence_example_navigation">Se rendre à l’aéroport international de Vancouver</string>
     <string name="skill_navigation_specify_where">Indiquez où vous souhaitez vous rendre</string>

@@ -146,17 +146,13 @@
     <string name="grant_permissions">Acordați permisiuni</string>
     <string name="pref_wake_method">Metoda de recunoaștere a cuvântului de inițializare</string>
     <string name="pref_wake_method_disabled">Dezactivat</string>
-    <string name="pref_stt_auto_finish_summary_on">Trimite automat comanda vocală către aplicația solicitată atunci când ascultarea comenzii se termină</string>
-    <string name="pref_stt_auto_finish_summary_off">Așteaptă confirmare manuală înaintea trimiterii comenzii vocale către aplicația solicitată</string>
     <string name="wake_service_foreground_notification_summary">Această notificare permite serviciului Nori wake word să asculte microfonul în fundal</string>
     <string name="wake_service_triggered_notification_summary">În Android 10+, Nori nu poate porni când este detectat o frază de inițializare fără a afișa o notificare.</string>
     <string name="wake_service_triggered_notification">Fraza de inițializare a Nori a fost detectată, atingeți pentru a deschide</string>
     <string name="pref_stt_play_sound_summary">Alegeți dacă să redați un sunet atunci când vocea dvs. începe să fie recunoscută și selectați canalul audio pe care să redați sunetul</string>
     <string name="pref_stt_play_sound_alarm">Canal alarmă</string>
     <string name="pref_wake_method_openwakeword">Procesare audio offline OpenWakeWord</string>
-    <string name="stt_popup">Popup voce - text</string>
     <string name="pref_wake_method_summary">Alege serviciul care să proceseze fraza de inițializare \"Hey Nori\"</string>
-    <string name="pref_stt_auto_finish_title">Trimite rezultatul procesării text - voce către un popup text</string>
     <string name="pref_skills_summary">Activează/Dezactivează aptitudini și modifică comportamentul</string>
     <string name="expand">Desfășoară</string>
     <string name="pref_general">General</string>

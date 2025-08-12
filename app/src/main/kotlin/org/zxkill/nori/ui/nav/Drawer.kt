@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -34,7 +33,6 @@ import org.zxkill.nori.R
 @Composable
 fun DrawerContent(
     onSettingsClick: () -> Unit,
-    onSpeechToTextPopupClick: () -> Unit,
     closeDrawer: () -> Unit,
 ) {
     ModalDrawerSheet(
@@ -58,22 +56,13 @@ fun DrawerContent(
                 .testTag("settings_drawer_item"),
         )
 
-        DrawerItem(
-            icon = Icons.Default.RecordVoiceOver,
-            label = R.string.stt_popup,
-            onClick = {
-                onSpeechToTextPopupClick()
-                closeDrawer()
-            },
-            modifier = Modifier.padding(horizontal = 12.dp),
-        )
     }
 }
 
 @Preview
 @Composable
 private fun DrawerContentPreview() {
-    DrawerContent(onSettingsClick = {}, onSpeechToTextPopupClick = {}, closeDrawer = {})
+    DrawerContent(onSettingsClick = {}, closeDrawer = {})
 }
 
 @Preview
