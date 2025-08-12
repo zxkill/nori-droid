@@ -218,13 +218,6 @@ private fun MainSettingsScreen(
             )
         }
         item {
-            sttAutoFinish().Render(
-                settings.autoFinishSttPopup,
-                viewModel::setAutoFinishSttPopup
-            )
-        }
-
-        item {
             Spacer(modifier = Modifier.height(8.dp))
         }
     }

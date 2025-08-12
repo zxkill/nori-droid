@@ -60,9 +60,6 @@
     <string name="pref_skill_grant_permissions">允许</string>
     <string name="pref_search_engine">搜索引擎</string>
     <string name="pref_weather_default_city">默认城市</string>
-    <string name="pref_stt_auto_finish_title">直接发送语音识别结果到文本弹窗</string>
-    <string name="pref_stt_auto_finish_summary_on">监听完成时自动发送语音结果至请求应用</string>
-    <string name="pref_stt_auto_finish_summary_off">发送语音结果至请求应用时等待手动确认</string>
     <string name="eval_missing_permissions">“%1$s”功能需要下列权限：%2$s</string>
     <string name="eval_fatal_error">未能评估您的请求</string>
     <string name="eval_network_error">网络错误</string>
@@ -70,7 +67,6 @@
     <string name="eval_no_match">没听懂</string>
     <string name="stt_say_something">随便说些什么…</string>
     <string name="stt_did_not_understand">不明白，请重试</string>
-    <string name="stt_popup">语音识别服务</string>
     <string name="skill_name_search">搜索</string>
     <string name="skill_sentence_example_search">搜索如何喂猫</string>
     <string name="skill_name_weather">天气</string>

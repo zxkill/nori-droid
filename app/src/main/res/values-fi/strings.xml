@@ -100,14 +100,11 @@
     <string name="stop">Pysähdy</string>
     <string name="error_report_channel_description">Ilmoitukset virheistä ilmoittamiseksi</string>
     <string name="pref_io">Syöttö- ja lähtömenetelmät</string>
-    <string name="pref_stt_auto_finish_summary_on">Lähetä puhetulos automaattisesti pyytävälle sovellukselle, kun kuuntelu on päättynyt</string>
-    <string name="pref_stt_auto_finish_summary_off">Odota manuaalista vahvistusta ennen kuin lähetät puhetuloksen pyytävälle sovellukselle</string>
     <string name="eval_missing_permissions">Taito \"%1$s\" tarvitsee nämä luvat toimiakseen: %2$s</string>
     <string name="error_copy_formatted">Kopioi muotoiltu raportti</string>
     <string name="error_report_github">Raportoi GitHubissa</string>
     <string name="error_report_channel_name">Virheraportin ilmoitus</string>
     <string name="pref_general">Yleinen</string>
-    <string name="pref_stt_auto_finish_title">Lähetä puheen tulos suoraan tekstiponnahdusikkunaan</string>
     <string name="eval_no_match">En ymmärtänyt</string>
     <string name="skill_name_navigation">Navigointi</string>
     <string name="skill_sentence_example_navigation">Navigoi Vancouverin kansainväliselle lentokentälle</string>
@@ -167,7 +164,6 @@
     <string name="retry">Yritä uudelleen</string>
     <string name="pref_stt_play_sound_summary">Valitse, toistetaanko ääni, kun äänesi aletaan tunnistaa, ja valitse äänikanava, jolla ääni toistetaan</string>
     <string name="grant_permissions">Myönnä luvat</string>
-    <string name="stt_popup">Puhe tekstiponnahdusikkunaksi</string>
     <string name="skill_search_no_results_stop">Haku ei tuottanut tulosta</string>
     <string name="pref_weather_temperature_unit">Lämpötilayksikkö</string>
     <string name="skill_weather_kelvin">K</string>

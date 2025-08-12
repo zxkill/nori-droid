@@ -1,7 +1,6 @@
 package org.zxkill.nori.settings
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.BreakfastDining
 import androidx.compose.material.icons.filled.Campaign
@@ -167,14 +166,6 @@ fun speechOutputDevice() = ListSetting(
             name = stringResource(R.string.pref_speech_output_method_nothing),
         ),
     ),
-)
-
-@Composable
-fun sttAutoFinish() = BooleanSetting(
-    title = stringResource(R.string.pref_stt_auto_finish_title),
-    icon = Icons.AutoMirrored.Filled.Send,
-    descriptionOff = stringResource(R.string.pref_stt_auto_finish_summary_off),
-    descriptionOn = stringResource(R.string.pref_stt_auto_finish_summary_on),
 )
 
 @Composable

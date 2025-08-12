@@ -95,8 +95,6 @@
     <string name="pref_search_engine">Пошукова система</string>
     <string name="pref_weather_default_city">Місто за замовчуванням</string>
     <string name="pref_weather_default_city_using_ip_info">Встановіть місто, яке буде використовуватися для прогнозу погоди, коли ви не вказуєте конкретне місто. Типово місто визначається за вашою IP адресою.</string>
-    <string name="pref_stt_auto_finish_title">Надсилати результат напряму до спливаючого вікна Speech to Text</string>
-    <string name="pref_stt_auto_finish_summary_off">Чекати на підтвердження перед надсиланням результату мовлення до запитуючого застосунку</string>
     <string name="pref_dynamic_colors_title">Динамічні кольори</string>
     <string name="pref_dynamic_colors_summary">Використовувати динамічні кольори Material You, надані системою</string>
     <string name="settings_description_with_value">%1$s — %2$s</string>
@@ -104,9 +102,7 @@
     <string name="eval_network_error">Помилка мережі</string>
     <string name="eval_network_error_description">Nori не може підключитися до мережі. Будь ласка, перевірте ваше підключення й спробуйте ще раз.</string>
     <string name="eval_no_match">Я не зрозуміла</string>
-    <string name="pref_stt_auto_finish_summary_on">Автоматично надсилати результат мовлення до запитуючого застосунку після завершення прослуховування</string>
     <string name="eval_missing_permissions">Для роботи навички \"%1$s\" потрібні наступні дозволи: %2$s</string>
-    <string name="stt_popup">Сервіс Speech to Text</string>
     <string name="skill_name_search">Пошук</string>
     <string name="skill_sentence_example_search">Пошук, як годувати кота</string>
     <string name="skill_name_weather">Погода</string>

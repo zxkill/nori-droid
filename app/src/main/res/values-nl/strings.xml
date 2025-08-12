@@ -4,8 +4,6 @@
     <string name="error_title">Foutenrapport</string>
     <string name="pref_theme">Thema</string>
     <string name="pref_weather_default_city_using_ip_info">Stel de te gebruiken stad in voor weerinfo wanneer je geen expliciete locatie meegeeft. Momenteel wordt de locatie op basis van IP-info gebruikt.</string>
-    <string name="pref_stt_auto_finish_title">Stuur het resultaat van de spraak-naar-tekst service rechtstreeks</string>
-    <string name="pref_stt_auto_finish_summary_on">Stuur het spraakresultaat automatisch naar de vragende app als het luisteren eindigt</string>
     <string name="eval_missing_permissions">De vaardigheid \"%1$s\" heeft deze toelatingen nodig om te werken: %2$s</string>
     <string name="eval_fatal_error">Je verzoek kon niet worden verwerkt</string>
     <string name="eval_network_error">Netwerkfout</string>
@@ -13,7 +11,6 @@
     <string name="eval_no_match">Ik heb je niet verstaan, kan je dat herhalen?</string>
     <string name="stt_say_something">Zeg iets…</string>
     <string name="stt_did_not_understand">Ik heb je niet begrepen, probeer opnieuw</string>
-    <string name="stt_popup">Spraak-naar-tekst service</string>
     <string name="drawer_open">Open de navigatielade</string>
     <string name="drawer_close">Sluit de navigatielade</string>
     <string name="drawer_header_subtitle">Kan ik je helpen\?</string>
@@ -80,7 +77,6 @@
     <string name="pref_skill_number_library_not_available">De bibliotheek om getallen te ontleden en op te maken <i>nori-numbers</i> Is nog niet naar jouw taal vertaald, waardoor vaardigheden die getallen gebruiken niet beschikbaar zijn.<b>Draag bij</b> indien mogelijk door hier te tikken!</string>
     <string name="pref_search_engine">Zoekmachine</string>
     <string name="pref_weather_default_city">Standaard Stad</string>
-    <string name="pref_stt_auto_finish_summary_off">Wacht op manuele bevestiging voordat de spraakresultaten naar de vragende app worden gestuurd</string>
     <string name="skill_name_search">Zoeken</string>
     <string name="skill_sentence_example_search">Zoek op hoe je een kat best eten geeft</string>
     <string name="skill_name_weather">Weer</string>

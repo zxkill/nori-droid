@@ -68,7 +68,6 @@
     <string name="microphone_error">تعذر الوصول إلى الميكروفون ، ربما يكون قيد الاستخدام بالفعل أو تم رفض الإذن المطلوب.</string>
     <string name="skill_fallback_name_text">رسالة نصية</string>
     <string name="vosk_model_download_error">فشل تنزيل نموذج Vosk</string>
-    <string name="pref_stt_auto_finish_summary_off">انتظر تأكيدا يدويا قبل إرسال نتيجة خطاب طلب التطبيق</string>
     <string name="stt_say_something">قل شيئا…</string>
     <string name="stt_did_not_understand">لم أستطع أن أفهم ، حاول مرة أخرى</string>
     <string name="skill_sentence_example_lyrics">ما هي هذه الاغنية بذكر كلماتها بدون العنوان؟</string>
@@ -78,7 +77,6 @@
     <string name="skill_telephone_found_contacts">لقد وجدت جهات اتصال %1$d ، أي جهة يجب أن أتصل؟</string>
     <string name="skill_telephone_not_calling">حسنًا ، أنا لا أتصل بأي شخص</string>
     <string name="skill_time_current_time">الآن ، هو %1$s</string>
-    <string name="pref_stt_auto_finish_title">إرسال نتيجة الكلام مباشرة إلى نافذة نص منبثقة</string>
     <string name="open_with">فتح بواسطة</string>
     <string name="no_app_to_open_intent">لا يمكن لأي تطبيق على جهازك فتح هذا</string>
     <string name="permission_denied">تم رفض الإذن</string>
@@ -106,9 +104,7 @@
     <string name="pref_skill_grant_permissions">السماح</string>
     <string name="skill_search_what_question">ما الذي تريد البحث عنه؟</string>
     <string name="skill_weather_description_temperature">%1$s · %2$d%3$s</string>
-    <string name="pref_stt_auto_finish_summary_on">إرسال نتيجة الكلام تلقائيًا إلى التطبيق الذي يطلبه عند انتهاء الاستماع</string>
     <string name="pref_skill_number_library_not_available">مكتبة تحليل الأرقام وتنسيقها <i> nori-number </i> لم تتم ترجمتها بعد إلى لغتك ، مما يعني أن جميع المهارات المتعلقة بالأرقام والمدد والتواريخ غير متوفرة. <b> الرجاء المساهمة بـ </b> إذا كان بإمكانك النقر هنا!</string>
-    <string name="stt_popup">خدمة تحويل الكلام إلى نص</string>
     <string name="skill_telephone_unknown_contact">لم يتم العثور على جهة اتصال ، حاول مرة أخرى</string>
     <string name="skill_name_navigation">الملاحة</string>
     <string name="skill_navigation_specify_where">حدد المكان الذي تريد الانتقال إليه</string>

@@ -101,8 +101,6 @@
     <string name="skill_date_year">Сейчас %1$s год</string>
     <string name="skill_date_month">Сейчас %1$s</string>
     <string name="error_report_channel_name">Уведомление с отчетом об ошибке</string>
-    <string name="pref_stt_auto_finish_title">Автоматически отправлять распознанный текст</string>
-    <string name="pref_stt_auto_finish_summary_on">Автоматически передавать распознанную речь в запрашиваемое приложение по завершению прослушивания</string>
     <string name="skill_name_navigation">Навигация</string>
     <string name="error_details_headline">Подробности:</string>
     <string name="error_details_labels">Действие:
@@ -118,10 +116,8 @@
     <string name="error_report_notification_title">Нори столкнулся с ошибкой, нажмите чтобы сообщить о ней</string>
     <string name="error_report_github">Сообщить на GitHub</string>
     <string name="error_report_notification_toast">Произошла ошибка, смотрите уведомление</string>
-    <string name="pref_stt_auto_finish_summary_off">Ожидать ручного подтверждения перед отправкой результат распознавания речи в запрашиваемое приложение</string>
     <string name="stt_say_something">Скажите что-нибудь…</string>
     <string name="stt_did_not_understand">Я Вас не понял, повторите пожалуйста</string>
-    <string name="stt_popup">Сервис преобразования речи в текст</string>
     <string name="skill_navigation_specify_where">Уточните, куда вы хотите построить маршрут</string>
     <string name="skill_sentence_example_navigation">Построй маршрут до Шереметьево</string>
     <string name="skill_navigation_navigating_to">Построение маршрута к %1$s</string>
