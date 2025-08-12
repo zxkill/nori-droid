@@ -1,6 +1,7 @@
 package org.zxkill.nori.ui.face
 
 import android.graphics.Rect
+import android.util.Size
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
@@ -76,6 +77,9 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
         val detector = FaceDetection.getClient(
             FaceDetectorOptions.Builder()
                 .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
+                .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_NONE)
+                .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_NONE)
+                .setContourMode(FaceDetectorOptions.CONTOUR_MODE_NONE)
                 .build()
         )
         val poseDetector = PoseDetection.getClient(
@@ -84,11 +88,19 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
                 .build()
         )
         var lastSeen = System.currentTimeMillis()
+        var isProcessing = false
+        var frameCounter = 0
         val analysis = ImageAnalysis.Builder()
+            .setTargetResolution(Size(640, 480))
             // Берём только последний кадр, чтобы не накапливать очередь
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .build()
         analysis.setAnalyzer(executor) { imageProxy ->
+            if (isProcessing || frameCounter++ % 2 != 0) {
+                imageProxy.close()
+                return@setAnalyzer
+            }
+            isProcessing = true
             // Анализ каждого кадра выполняется в отдельном потоке
             val mediaImage = imageProxy.image
             if (mediaImage != null) {
@@ -138,6 +150,7 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
                             // Сохраняем углы отклонения для отладки
                             state.offsets.value = Pair(smoothX * FOV_DEG_X / 2f, smoothY * FOV_DEG_Y / 2f)
                             eyesState.lookAt(smoothX, smoothY)
+                            isProcessing = false
                             imageProxy.close()
                         } else {
                             // Если лиц не найдено, пробуем использовать детектор поз
@@ -186,14 +199,19 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
                                     }
                                 }
                                 .addOnFailureListener { handleNoFace() }
-                                .addOnCompleteListener { imageProxy.close() }
+                                .addOnCompleteListener {
+                                    isProcessing = false
+                                    imageProxy.close()
+                                }
                         }
                     }
                     .addOnFailureListener {
                         handleNoFace()
+                        isProcessing = false
                         imageProxy.close()
                     }
             } else {
+                isProcessing = false
                 imageProxy.close()
             }
         }
