@@ -339,5 +339,5 @@ private const val FOV_DEG_Y = 38f
 private const val POSE_MIN_VIS = 0.8f
 // Коэффициент плавности перемещения взгляда
 // Увеличенное значение обеспечивает более быстрое следование за движением лица
-private const val SMOOTHING = 0.4f
+private const val SMOOTHING = 1.0f
 
