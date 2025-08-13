@@ -262,7 +262,9 @@ fun rememberFaceTracker(
                                 val id = t.id
                                 val desc = t.descriptor
                                 if (id != null && desc != null) {
-                                    val match = library.values.minByOrNull { distance(desc, it.descriptor) }
+                                    // Игнорируем записи без дескриптора или с другой длиной.
+                                    val candidates = library.values.filter { it.descriptor.size == desc.size }
+                                    val match = candidates.minByOrNull { distance(desc, it.descriptor) }
                                     if (match != null && distance(desc, match.descriptor) < 0.1f) {
                                         recognized[id] = match
                                     }
@@ -432,8 +434,10 @@ private fun extractDescriptor(face: com.google.mlkit.vision.face.Face): FloatArr
 
 // Евклидово расстояние между двумя дескрипторами лиц
 private fun distance(a: FloatArray, b: List<Float>): Float {
+    val len = min(a.size, b.size)
+    if (len == 0) return Float.POSITIVE_INFINITY
     var sum = 0f
-    for (i in a.indices) {
+    for (i in 0 until len) {
         val d = a[i] - b[i]
         sum += d * d
     }
