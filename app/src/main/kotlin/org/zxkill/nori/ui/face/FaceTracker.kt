@@ -33,6 +33,8 @@ import com.google.mlkit.vision.pose.PoseLandmark
 import com.google.mlkit.vision.pose.defaults.PoseDetectorOptions
 import org.zxkill.nori.ui.eyes.EyesState
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicReference
+import kotlinx.coroutines.delay
 
 /**
  * Состояние и вспомогательные классы для трекинга лица.
@@ -71,6 +73,8 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
     val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current
 
+    val target = remember { AtomicReference(0f to 0f) }
+
     val state = remember {
         FaceTrackerState(
             PreviewView(context),
@@ -78,6 +82,23 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
             mutableStateOf<Pair<Int, Int>?>(null),
             mutableStateOf<Pair<Float, Float>?>(null),
         )
+    }
+
+    LaunchedEffect(Unit) {
+        var smoothX = 0f
+        var smoothY = 0f
+        while (true) {
+            if (!eyesState.autoMode) {
+                val (tx, ty) = target.get()
+                smoothX += (tx - smoothX) * SMOOTHING
+                smoothY += (ty - smoothY) * SMOOTHING
+                state.offsets.value = Pair(smoothX * FOV_DEG_X / 2f, smoothY * FOV_DEG_Y / 2f)
+                eyesState.lookAt(smoothX, smoothY)
+            } else {
+                state.offsets.value = null
+            }
+            delay(16L)
+        }
     }
 
     val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
@@ -174,12 +195,7 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
                             // По вертикали оставляем исходный знак: при движении головы вверх лицо
                             // смещается вверх в кадре, поэтому дополнительная инверсия не нужна
                             val targetY = (normY * 1.5f).coerceIn(-1f, 1f)
-                            // Плавно приближаем текущий взгляд к целевому
-                            smoothX += (targetX - smoothX) * SMOOTHING
-                            smoothY += (targetY - smoothY) * SMOOTHING
-                            // Сохраняем углы отклонения для отладки
-                            state.offsets.value = Pair(smoothX * FOV_DEG_X / 2f, smoothY * FOV_DEG_Y / 2f)
-                            eyesState.lookAt(smoothX, smoothY)
+                            target.set(targetX to targetY)
                             isProcessing = false
                             imageProxy.close()
                         } else {
@@ -219,10 +235,7 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
                                         // Ось Y направлена вниз, но при подъёме головы лицо смещается вверх,
                                         // поэтому используем нормализованное значение без инверсии знака
                                         val targetY = (normY * 1.5f).coerceIn(-1f, 1f)
-                                        smoothX += (targetX - smoothX) * SMOOTHING
-                                        smoothY += (targetY - smoothY) * SMOOTHING
-                                        state.offsets.value = Pair(smoothX * FOV_DEG_X / 2f, smoothY * FOV_DEG_Y / 2f)
-                                        eyesState.lookAt(smoothX, smoothY)
+                                        target.set(targetX to targetY)
                                     } else {
                                         // Голова не найдена — сбрасываем состояние
                                         handleNoFace()
