@@ -58,10 +58,11 @@ class FaceTrackerState internal constructor(
  *
  * Трекер настроен на максимальную эффективность:
  *  - детектор лица работает в быстром режиме без лишних опций;
- *  - кадры анализируются в разрешении 640×480;
- *  - частота работы камеры ограничена 15 кадрами в секунду;
+ *  - кадры анализируются в разрешении 320×240;
+ *  - частота работы камеры ограничена 5 кадрами в секунду;
  *  - обрабатывается лишь каждый второй кадр, остальные игнорируются;
- *  - если предыдущий кадр ещё в работе, следующий сразу закрывается.
+ *  - если предыдущий кадр ещё в работе, следующий сразу закрывается;
+ *  - в авто-режиме анализ кадров полностью пропускается для экономии энергии.
  * Даже при отключённом [debug] камера и анализ продолжают работать,
  * просто превью не выводится на экран.
  *
@@ -134,7 +135,7 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
         Camera2Interop.Extender(analysisBuilder)
             .setCaptureRequestOption(
                 CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
-                Range(10, 10), // 10 fps — меньше нагрев от модуля камеры
+                Range(5, 5), // 5 fps — ещё меньше нагрев от модуля камеры
             )
         val analysis = analysisBuilder
             // Устанавливаем невысокое разрешение кадра для снижения нагрузки
@@ -143,6 +144,11 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .build()
         analysis.setAnalyzer(executor) { imageProxy ->
+            // В авто-режиме анализ кадров не нужен
+            if (eyesState.autoMode) {
+                imageProxy.close()
+                return@setAnalyzer
+            }
             // Если предыдущий кадр ещё обрабатывается или это нечётный кадр,
             // сразу его закрываем, тем самым сокращая частоту анализа
             if (isProcessing || frameCounter++ % 2 != 0) {
@@ -268,7 +274,7 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
             Camera2Interop.Extender(previewBuilder)
                 .setCaptureRequestOption(
                     CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
-                    Range(10, 10),
+                    Range(5, 5),
                 )
             val preview = previewBuilder.build().also {
                 it.setSurfaceProvider(state.previewView.surfaceProvider)
