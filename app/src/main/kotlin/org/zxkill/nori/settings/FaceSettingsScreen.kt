@@ -1,11 +1,15 @@
 package org.zxkill.nori.settings
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.input.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import org.zxkill.nori.R
@@ -48,7 +52,12 @@ private fun FaceSettingsContent(
     var priorityText by remember { mutableStateOf("0") }
     val activeId = tracker.activeId.value
 
-    Column(modifier.width(320.dp)) {
+    // Весь контент прокручиваем, чтобы список лиц и кнопка не обрезались на низких экранах
+    Column(
+        modifier
+            .width(320.dp)
+            .verticalScroll(rememberScrollState())
+    ) {
         Text(
             text = stringResource(R.string.pref_known_faces_title),
             style = MaterialTheme.typography.titleMedium,
@@ -62,14 +71,19 @@ private fun FaceSettingsContent(
             value = name,
             onValueChange = { name = it },
             label = { Text(stringResource(R.string.known_face_input_hint)) },
+            singleLine = true,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp)
         )
+        // Приоритет задаёт важность лица (0–10). Чем выше число, тем раньше оно выбирается для слежения
         OutlinedTextField(
             value = priorityText,
             onValueChange = { priorityText = it.filter { ch -> ch.isDigit() } },
             label = { Text(stringResource(R.string.known_face_priority_hint)) },
+            supportingText = { Text(stringResource(R.string.known_face_priority_range)) },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            singleLine = true,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
@@ -95,6 +109,11 @@ private fun FaceSettingsContent(
                 modifier = Modifier.padding(16.dp)
             )
         } else {
+            Text(
+                text = stringResource(R.string.known_faces_list_title),
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp)
+            )
             known.forEach { (id, face) ->
                 Text(
                     text = "${face.name} (id=$id, p=${face.priority})",
