@@ -76,7 +76,11 @@ fun RobotFaceScreen(
     // Загружаем известные лица из настроек в трекер
     LaunchedEffect(settings.knownFacesMap) {
         tracker.library.value = settings.knownFacesMap.mapValues {
-            KnownFace(it.value.name, it.value.priority, it.value.descriptorList)
+            KnownFace(
+                it.value.name,
+                it.value.priority,
+                it.value.samplesList.map { s -> s.descriptorList },
+            )
         }
     }
 

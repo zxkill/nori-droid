@@ -56,7 +56,13 @@ data class TrackedFace(val id: Int?, val box: Rect, val descriptor: FloatArray?)
  * `priority` используется при выборе цели для слежения, если в кадре
  * несколько знакомых людей. Чем больше значение, тем важнее лицо.
  */
-data class KnownFace(val name: String, val priority: Int, val descriptor: List<Float>)
+data class KnownFace(
+    val name: String,
+    val priority: Int,
+    // Один человек может быть сохранён с нескольких ракурсов,
+    // поэтому храним набор векторов признаков.
+    val descriptors: List<List<Float>>,
+)
 
 /**
  * Состояние и вспомогательные классы для трекинга лица.
@@ -85,7 +91,15 @@ class FaceTrackerState internal constructor(
 ) {
     /** Добавить лицо в библиотеку известных по его [id]. */
     fun addKnownFace(id: Int, name: String, priority: Int = 0, descriptor: List<Float>) {
-        library.value = library.value + (id to KnownFace(name, priority, descriptor))
+        val existing = library.value[id]
+        library.value = if (existing != null) {
+            library.value + (id to existing.copy(
+                priority = priority,
+                descriptors = existing.descriptors + listOf(descriptor)
+            ))
+        } else {
+            library.value + (id to KnownFace(name, priority, listOf(descriptor)))
+        }
     }
 
     /** Удалить лицо из библиотеки известных. */
@@ -262,11 +276,20 @@ fun rememberFaceTracker(
                                 val id = t.id
                                 val desc = t.descriptor
                                 if (id != null && desc != null) {
-                                    // Игнорируем записи без дескриптора или с другой длиной.
-                                    val candidates = library.values.filter { it.descriptor.size == desc.size }
-                                    val match = candidates.minByOrNull { distance(desc, it.descriptor) }
-                                    if (match != null && distance(desc, match.descriptor) < 0.1f) {
-                                        recognized[id] = match
+                                    var best: KnownFace? = null
+                                    var bestDist = Float.MAX_VALUE
+                                    // Сравниваем найденное лицо со всеми сохранёнными выборками
+                                    library.values.forEach { face ->
+                                        val dist = face.descriptors
+                                            .filter { it.size == desc.size }
+                                            .minOfOrNull { d -> distance(desc, d) } ?: return@forEach
+                                        if (dist < bestDist) {
+                                            bestDist = dist
+                                            best = face
+                                        }
+                                    }
+                                    if (best != null && bestDist < 0.1f) {
+                                        recognized[id] = best!!
                                     }
                                 }
                             }

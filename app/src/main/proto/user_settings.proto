@@ -7,14 +7,21 @@ import "speech_output_device.proto";
 option java_package = "org.zxkill.nori.settings.datastore";
 option java_multiple_files = true;
 
-// Сохранённые знакомые лица пользователя
+// Одна сохранённая выборка лица. Содержит вектор признаков,
+// полученный при конкретном сканировании.
+message FaceSample {
+    // Нормализованные координаты ключевых точек лица
+    repeated float descriptor = 1;
+}
+
+// Сохранённое знакомое лицо пользователя
 message FaceEntry {
     // Имя человека
     string name = 1;
     // Приоритет, чем выше — тем важнее лицо при выборе цели слежения
     int32 priority = 2;
-    // Вектор признаков лица (нормализованные координаты ключевых точек)
-    repeated float descriptor = 3;
+    // Набор выборок лица под разными углами
+    repeated FaceSample samples = 3;
 }
 
 message UserSettings {

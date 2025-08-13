@@ -49,7 +49,11 @@ private fun FaceSettingsContent(
     // При изменении настроек обновляем библиотеку известных лиц в трекере
     LaunchedEffect(known) {
         tracker.library.value = known.mapValues {
-            KnownFace(it.value.name, it.value.priority, it.value.descriptorList)
+            KnownFace(
+                it.value.name,
+                it.value.priority,
+                it.value.samplesList.map { s -> s.descriptorList }
+            )
         }
     }
 
@@ -95,12 +99,10 @@ private fun FaceSettingsContent(
         )
         Button(
             onClick = {
-                val id = (System.currentTimeMillis() and 0x7fffffff).toInt()
                 val priority = priorityText.toIntOrNull() ?: 0
                 val desc = tracker.faces.value.firstOrNull { it.id == activeId }?.descriptor
                 if (desc != null) {
-                    viewModel.addKnownFace(id, name, priority, desc.toList())
-                    tracker.addKnownFace(id, name, priority, desc.toList())
+                    viewModel.addKnownFace(name, priority, desc.toList())
                     name = ""
                 }
             },
@@ -130,12 +132,16 @@ private fun FaceSettingsContent(
                         .padding(horizontal = 16.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = "${face.name} (p=${face.priority})",
+                        text = stringResource(
+                            R.string.known_face_item_format,
+                            face.name,
+                            face.priority,
+                            face.samplesCount,
+                        ),
                         modifier = Modifier.weight(1f)
                     )
                     IconButton(onClick = {
                         viewModel.removeKnownFace(id)
-                        tracker.removeKnownFace(id)
                     }) {
                         Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.known_face_delete))
                     }

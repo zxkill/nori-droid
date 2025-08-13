@@ -104,6 +104,7 @@
     <string name="known_faces_empty">No faces saved yet</string>
     <string name="known_faces_list_title">Saved faces</string>
     <string name="known_face_delete">Delete face</string>
+    <string name="known_face_item_format">%1$s (p=%2$d, %3$d samples)</string>
     <string name="perm_read_contacts">read your contacts</string>
     <string name="perm_call_phone">directly call phone numbers</string>
     <string name="perm_camera">use the camera</string>

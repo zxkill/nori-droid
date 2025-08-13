@@ -25,21 +25,40 @@ class FaceSettingsViewModel @Inject constructor(
     val knownFaces = dataStore.data.map { it.knownFacesMap }
 
     /**
-     * Добавить новое лицо в настройки по его [id], [name], [priority] и [descriptor].
+     * Добавить выборку лица по [name]. Если такое имя уже есть,
+     * новая выборка дописывается в существующую запись.
      */
-    fun addKnownFace(id: Int, name: String, priority: Int, descriptor: List<Float>) {
+    fun addKnownFace(name: String, priority: Int, descriptor: List<Float>) {
         viewModelScope.launch {
             dataStore.updateData { settings ->
-                settings.toBuilder()
-                    .putKnownFaces(
+                val builder = settings.toBuilder()
+                val existing = builder.knownFacesMap.entries.find { it.value.name == name }
+                if (existing != null) {
+                    val id = existing.key
+                    val entryBuilder = existing.value.toBuilder()
+                    entryBuilder.setPriority(priority)
+                        .addSamples(
+                            FaceEntry.FaceSample.newBuilder()
+                                .addAllDescriptor(descriptor)
+                                .build(),
+                        )
+                    builder.putKnownFaces(id, entryBuilder.build())
+                } else {
+                    val id = (System.currentTimeMillis() and 0x7fffffff).toInt()
+                    builder.putKnownFaces(
                         id,
                         FaceEntry.newBuilder()
                             .setName(name)
                             .setPriority(priority)
-                            .addAllDescriptor(descriptor)
-                            .build()
+                            .addSamples(
+                                FaceEntry.FaceSample.newBuilder()
+                                    .addAllDescriptor(descriptor)
+                                    .build(),
+                            )
+                            .build(),
                     )
-                    .build()
+                }
+                builder.build()
             }
         }
     }

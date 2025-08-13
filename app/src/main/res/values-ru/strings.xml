@@ -81,6 +81,7 @@
     <string name="known_faces_empty">Лица пока не сохранены</string>
     <string name="known_faces_list_title">Сохранённые лица</string>
     <string name="known_face_delete">Удалить лицо</string>
+    <string name="known_face_item_format">%1$s (приор=%2$d, %3$d фото)</string>
     <string name="skill_fallback_name_text">Текстовое сообщение</string>
     <string name="skill_open_unknown_app">Неизвестное приложение %1$s</string>
     <string name="eval_network_error">Ошибка связи</string>
