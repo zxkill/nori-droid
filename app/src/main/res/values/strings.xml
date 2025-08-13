@@ -95,6 +95,12 @@
     <string name="pref_face_debug_title">Camera debug view</string>
     <string name="pref_face_debug_summary_on">Camera preview visible</string>
     <string name="pref_face_debug_summary_off">Camera preview hidden</string>
+    <string name="pref_known_faces_title">Known faces</string>
+    <string name="pref_known_faces_summary">Add photos of people Nori should recognise</string>
+    <string name="known_face_input_hint">Name</string>
+    <string name="known_face_priority_hint">Priority</string>
+    <string name="known_face_add_button">Save face</string>
+    <string name="known_faces_empty">No faces saved yet</string>
     <string name="perm_read_contacts">read your contacts</string>
     <string name="perm_call_phone">directly call phone numbers</string>
     <string name="perm_camera">use the camera</string>

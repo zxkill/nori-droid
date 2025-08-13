@@ -22,6 +22,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import android.graphics.Paint
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
@@ -31,10 +32,29 @@ import com.google.mlkit.vision.face.FaceDetectorOptions
 import com.google.mlkit.vision.pose.PoseDetection
 import com.google.mlkit.vision.pose.PoseLandmark
 import com.google.mlkit.vision.pose.defaults.PoseDetectorOptions
+import org.zxkill.nori.ui.eyes.EyeExpression
 import org.zxkill.nori.ui.eyes.EyesState
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.delay
+
+/**
+ * Представляет лицо, обнаруженное в текущем кадре.
+ *
+ * `id` — идентификатор, присваиваемый ML Kit. Он остаётся стабильным
+ * между кадрами, пока детектор видит одно и то же лицо, что позволяет
+ * запоминать знакомых людей.
+ * `box` — прямоугольник в координатах исходного изображения.
+ */
+data class TrackedFace(val id: Int?, val box: Rect)
+
+/**
+ * Описание известного лица с именем и приоритетом.
+ *
+ * `priority` используется при выборе цели для слежения, если в кадре
+ * несколько знакомых людей. Чем больше значение, тем важнее лицо.
+ */
+data class KnownFace(val name: String, val priority: Int)
 
 /**
  * Состояние и вспомогательные классы для трекинга лица.
@@ -45,13 +65,33 @@ import kotlinx.coroutines.delay
 class FaceTrackerState internal constructor(
     /** Видоискатель для отображения превью камеры в режиме отладки */
     val previewView: PreviewView,
-    /** Рамка найденного лица в координатах исходного изображения */
-    val faceBox: MutableState<Rect?>,
+    /** Список всех найденных лиц в координатах исходного изображения */
+    val faces: MutableState<List<TrackedFace>>,
     /** Размер текущего кадра камеры */
     val imageSize: MutableState<Pair<Int, Int>?>,
     /** Смещения по осям yaw/pitch в градусах (для вывода в отладке) */
     val offsets: MutableState<Pair<Float, Float>?>,
-)
+    /**
+     * Зарегистрированные известные лица.
+     * Ключом служит `trackingId`, который выдаёт ML Kit для лица.
+     */
+    val known: MutableState<Map<Int, KnownFace>>,
+    /**
+     * Идентификатор лица, за которым сейчас идёт слежение.
+     * В отладочном интерфейсе подсветка и подпись привязаны именно к нему.
+     */
+    val activeId: MutableState<Int?>,
+) {
+    /**
+     * Добавить известное лицо по его [id].
+     *
+     * В реальном приложении `id` можно получить, сфотографировав человека
+     * в режиме отладки и считав `activeId` из состояния.
+     */
+    fun addKnownFace(id: Int, name: String, priority: Int = 0) {
+        known.value = known.value + (id to KnownFace(name, priority))
+    }
+}
 
 /**
  * Создаёт и запускает трекер лица.
@@ -74,38 +114,48 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
     val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current
 
+    // Координаты точки, куда должны смотреть глаза. Обновляется анализатором кадров.
     val target = remember { AtomicReference(0f to 0f) }
 
     val state = remember {
         FaceTrackerState(
             PreviewView(context),
-            mutableStateOf<Rect?>(null),
+            mutableStateOf(emptyList()),
             mutableStateOf<Pair<Int, Int>?>(null),
             mutableStateOf<Pair<Float, Float>?>(null),
+            mutableStateOf(emptyMap()),
+            mutableStateOf(null),
         )
     }
 
     LaunchedEffect(Unit) {
+        // Плавно интерполируем направление взгляда, чтобы глаза не дёргались.
         var smoothX = 0f
         var smoothY = 0f
         while (true) {
             if (!eyesState.autoMode) {
                 val (tx, ty) = target.get()
+                // Экспоненциальное сглаживание координат
                 smoothX += (tx - smoothX) * SMOOTHING
                 smoothY += (ty - smoothY) * SMOOTHING
+                // Переводим нормализованные координаты в градусы обзора
                 state.offsets.value = Pair(smoothX * FOV_DEG_X / 2f, smoothY * FOV_DEG_Y / 2f)
                 eyesState.lookAt(smoothX, smoothY)
             } else {
+                // В авто-режиме глаза двигаются сами, смещения не показываем
                 state.offsets.value = null
             }
+            // Частота обновления ~60 Гц
             delay(16L)
         }
     }
 
     val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
 
+    // Настраиваем камеру и анализатор кадров. Перезапускается при смене режима отладки.
     DisposableEffect(debug) {
         val executor = Executors.newSingleThreadExecutor()
+        // Детектор лиц ML Kit. Включаем трекинг, чтобы получать стабильные `trackingId`.
         val detector = FaceDetection.getClient(
             FaceDetectorOptions.Builder()
                 // Быстрый режим и отключение лишних фич экономят батарею
@@ -113,8 +163,11 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
                 .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_NONE)
                 .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_NONE)
                 .setContourMode(FaceDetectorOptions.CONTOUR_MODE_NONE)
+                .enableTracking()
                 .build()
         )
+        // Дополнительный детектор поз — позволяет грубо оценить положение головы,
+        // когда обычный детектор лиц временно теряет человека.
         val poseDetector = PoseDetection.getClient(
             PoseDetectorOptions.Builder()
                 // Потоковый режим — для быстрого отклика при непрерывном анализе
@@ -127,7 +180,7 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
         var isProcessing = false
         // Счётчик кадров, чтобы обрабатывать лишь каждый второй
         var frameCounter = 0
-        // Сглаженные значения направления взгляда
+        // Сглаженные значения направления взгляда, вычисляются без привязки к основной корутине
         var smoothX = 0f
         var smoothY = 0f
         // Строим use case анализа с ограничением частоты кадров камеры
@@ -165,41 +218,74 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
                         eyesState.setAutoMode(true)
                     }
                     // Сбрасываем отладочные данные
-                    state.faceBox.value = null
+                    state.faces.value = emptyList()
                     state.imageSize.value = null
                     state.offsets.value = null
+                    state.activeId.value = null
+                    eyesState.setExpression(EyeExpression.NORMAL)
                 }
                 // Сначала пытаемся обнаружить лицо
                 detector.process(image)
                     .addOnSuccessListener { faces ->
-                        // Выбираем самое крупное лицо в кадре
-                        val face = faces.maxByOrNull { it.boundingBox.width() * it.boundingBox.height() }
-                        if (face != null) {
+                        if (faces.isNotEmpty()) {
                             lastSeen = System.currentTimeMillis()
                             eyesState.setAutoMode(false)
                             state.imageSize.value = Pair(image.width, image.height)
-                            val box = face.boundingBox
-                            // Камера фронтальная, поэтому зеркалим координаты
-                            val mirrored = Rect(
-                                image.width - box.right,
-                                box.top,
-                                image.width - box.left,
-                                box.bottom
-                            )
-                            state.faceBox.value = mirrored
-                            // Нормализуем центр рамки в диапазон [-1,1]
-                            val cx = mirrored.exactCenterX()
-                            val cy = mirrored.exactCenterY()
-                            val px = image.width.toFloat()
-                            val py = image.height.toFloat()
-                            val normX = (cx - px / 2f) / (px / 2f)
-                            val normY = (cy - py / 2f) / (py / 2f)
-                            // Увеличиваем амплитуду и ограничиваем диапазон
-                            val targetX = (-normX * 1.5f).coerceIn(-1f, 1f)
-                            // По вертикали оставляем исходный знак: при движении головы вверх лицо
-                            // смещается вверх в кадре, поэтому дополнительная инверсия не нужна
-                            val targetY = (normY * 1.5f).coerceIn(-1f, 1f)
-                            target.set(targetX to targetY)
+
+                            val tracked = faces.map { face ->
+                                val box = face.boundingBox
+                                // Зеркалим координаты, т.к. фронтальная камера выдаёт отражённое изображение
+                                val mirrored = Rect(
+                                    image.width - box.right,
+                                    box.top,
+                                    image.width - box.left,
+                                    box.bottom
+                                )
+                                TrackedFace(face.trackingId, mirrored)
+                            }
+                            // Сохраняем все лица для дальнейшего вывода в отладочном окне
+                            state.faces.value = tracked
+
+                            val knownMap = state.known.value
+                            // Отбираем лица, которые уже сохранены пользователем как "знакомые"
+                            val knownFaces = faces.filter { knownMap.containsKey(it.trackingId) }
+                            // Приоритет: если есть знакомые лица — выбираем самое важное,
+                            // иначе ориентируемся на самое крупное лицо в кадре
+                            val targetFace = if (knownFaces.isNotEmpty()) {
+                                knownFaces.maxByOrNull { knownMap[it.trackingId]?.priority ?: 0 }
+                            } else {
+                                faces.maxByOrNull { it.boundingBox.width() * it.boundingBox.height() }
+                            }
+
+                            if (targetFace != null) {
+                                val box = targetFace.boundingBox
+                                val mirrored = Rect(
+                                    image.width - box.right,
+                                    box.top,
+                                    image.width - box.left,
+                                    box.bottom
+                                )
+                                // Запоминаем активное лицо — за ним будут следить глаза
+                                state.activeId.value = targetFace.trackingId
+                                // Если лицо знакомо, показываем радостное выражение
+                                if (knownMap.containsKey(targetFace.trackingId)) {
+                                    eyesState.setExpression(EyeExpression.HAPPY)
+                                } else {
+                                    eyesState.setExpression(EyeExpression.NORMAL)
+                                }
+                                // Центральная точка рамки
+                                val cx = mirrored.exactCenterX()
+                                val cy = mirrored.exactCenterY()
+                                val px = image.width.toFloat()
+                                val py = image.height.toFloat()
+                                // Нормализуем координаты в диапазон [-1; 1]
+                                val normX = (cx - px / 2f) / (px / 2f)
+                                val normY = (cy - py / 2f) / (py / 2f)
+                                // Переводим координаты в целевое смещение глаз и зеркалим X
+                                val targetX = (-normX * 1.5f).coerceIn(-1f, 1f)
+                                val targetY = (normY * 1.5f).coerceIn(-1f, 1f)
+                                target.set(targetX to targetY)
+                            }
                             isProcessing = false
                             imageProxy.close()
                         } else {
@@ -228,7 +314,7 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
                                             (image.width - xMin).toInt(),
                                             yMax.toInt()
                                         )
-                                        state.faceBox.value = mirrored
+                                        state.faces.value = listOf(TrackedFace(null, mirrored))
                                         val cx = mirrored.exactCenterX()
                                         val cy = mirrored.exactCenterY()
                                         val px = image.width.toFloat()
@@ -297,27 +383,48 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
 }
 
 /**
- * Отладочный элемент: показывает превью камеры с рамкой найденного лица
- * и рассчитанными углами поворота. Используется только по желанию
- * пользователя, чтобы убедиться, что трекинг работает корректно.
+ * Отладочный элемент: показывает превью камеры с рамками найденных лиц,
+ * подписями известных людей и рассчитанными углами поворота.
+ * Используется только по желанию пользователя, чтобы убедиться,
+ * что трекинг работает корректно.
  */
 @Composable
 fun FaceDebugView(state: FaceTrackerState, modifier: Modifier = Modifier) {
+    val textPaint = remember {
+        Paint().apply {
+            color = android.graphics.Color.GREEN
+            textSize = 32f
+        }
+    }
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         AndroidView({ state.previewView }, modifier = Modifier.fillMaxSize())
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val box = state.faceBox.value
             val img = state.imageSize.value
-            if (box != null && img != null) {
+            val faces = state.faces.value
+            if (img != null) {
                 val (iw, ih) = img
                 val scaleX = size.width / iw
                 val scaleY = size.height / ih
-                drawRect(
-                    color = Color.Green,
-                    topLeft = Offset(box.left * scaleX, box.top * scaleY),
-                    size = Size(box.width() * scaleX, box.height() * scaleY),
-                    style = Stroke(width = 5f)
-                )
+                // Рисуем рамку вокруг каждого найденного лица
+                faces.forEach { face ->
+                    val box = face.box
+                    drawRect(
+                        color = Color.Green,
+                        topLeft = Offset(box.left * scaleX, box.top * scaleY),
+                        size = Size(box.width() * scaleX, box.height() * scaleY),
+                        style = Stroke(width = 5f)
+                    )
+                    // Если лицо нам известно, подписываем его имя над рамкой
+                    val name = state.known.value[face.id]?.name
+                    if (name != null) {
+                        drawContext.canvas.nativeCanvas.drawText(
+                            name,
+                            box.left * scaleX,
+                            box.top * scaleY - 4f,
+                            textPaint
+                        )
+                    }
+                }
             }
         }
         val off = state.offsets.value
