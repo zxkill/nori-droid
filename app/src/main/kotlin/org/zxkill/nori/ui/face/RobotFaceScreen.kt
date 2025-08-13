@@ -75,7 +75,9 @@ fun RobotFaceScreen(
     val tracker = rememberFaceTracker(debug = faceDebug && visibleOutput == null, eyesState = eyesState)
     // Загружаем известные лица из настроек в трекер
     LaunchedEffect(settings.knownFacesMap) {
-        tracker.known.value = settings.knownFacesMap.mapValues { KnownFace(it.value.name, it.value.priority) }
+        tracker.library.value = settings.knownFacesMap.mapValues {
+            KnownFace(it.value.name, it.value.priority, it.value.descriptorList)
+        }
     }
 
     // Текущее состояние устройства распознавания речи

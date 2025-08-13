@@ -17,6 +17,9 @@ import org.zxkill.nori.ui.eyes.rememberEyesState
 import org.zxkill.nori.ui.face.FaceDebugView
 import org.zxkill.nori.ui.face.KnownFace
 import org.zxkill.nori.ui.face.rememberFaceTracker
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.ui.Alignment
 
 /**
  * Экран настройки известных лиц.
@@ -43,9 +46,11 @@ private fun FaceSettingsContent(
     val tracker = rememberFaceTracker(debug = true, eyesState = rememberEyesState(), limitFps = false)
     val known by viewModel.knownFaces.collectAsState(initial = emptyMap())
 
-    // При изменении настроек обновляем карту известных лиц в трекере
+    // При изменении настроек обновляем библиотеку известных лиц в трекере
     LaunchedEffect(known) {
-        tracker.known.value = known.mapValues { KnownFace(it.value.name, it.value.priority) }
+        tracker.library.value = known.mapValues {
+            KnownFace(it.value.name, it.value.priority, it.value.descriptorList)
+        }
     }
 
     var name by remember { mutableStateOf("") }
@@ -90,11 +95,14 @@ private fun FaceSettingsContent(
         )
         Button(
             onClick = {
-                val id = activeId ?: return@Button
+                val id = (System.currentTimeMillis() and 0x7fffffff).toInt()
                 val priority = priorityText.toIntOrNull() ?: 0
-                viewModel.addKnownFace(id, name, priority)
-                tracker.addKnownFace(id, name, priority)
-                name = ""
+                val desc = tracker.faces.value.firstOrNull { it.id == activeId }?.descriptor
+                if (desc != null) {
+                    viewModel.addKnownFace(id, name, priority, desc.toList())
+                    tracker.addKnownFace(id, name, priority, desc.toList())
+                    name = ""
+                }
             },
             enabled = activeId != null && name.isNotBlank(),
             modifier = Modifier
@@ -115,10 +123,23 @@ private fun FaceSettingsContent(
                 modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp)
             )
             known.forEach { (id, face) ->
-                Text(
-                    text = "${face.name} (id=$id, p=${face.priority})",
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "${face.name} (p=${face.priority})",
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(onClick = {
+                        viewModel.removeKnownFace(id)
+                        tracker.removeKnownFace(id)
+                    }) {
+                        Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.known_face_delete))
+                    }
+                }
             }
         }
     }

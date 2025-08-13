@@ -48,7 +48,7 @@ import kotlin.math.min
  * запоминать знакомых людей.
  * `box` — прямоугольник в координатах исходного изображения.
  */
-data class TrackedFace(val id: Int?, val box: Rect)
+data class TrackedFace(val id: Int?, val box: Rect, val descriptor: FloatArray?)
 
 /**
  * Описание известного лица с именем и приоритетом.
@@ -56,7 +56,7 @@ data class TrackedFace(val id: Int?, val box: Rect)
  * `priority` используется при выборе цели для слежения, если в кадре
  * несколько знакомых людей. Чем больше значение, тем важнее лицо.
  */
-data class KnownFace(val name: String, val priority: Int)
+data class KnownFace(val name: String, val priority: Int, val descriptor: List<Float>)
 
 /**
  * Состояние и вспомогательные классы для трекинга лица.
@@ -73,10 +73,9 @@ class FaceTrackerState internal constructor(
     val imageSize: MutableState<Pair<Int, Int>?>,
     /** Смещения по осям yaw/pitch в градусах (для вывода в отладке) */
     val offsets: MutableState<Pair<Float, Float>?>,
-    /**
-     * Зарегистрированные известные лица.
-     * Ключом служит `trackingId`, который выдаёт ML Kit для лица.
-     */
+    /** Библиотека известных лиц из настроек пользователя */
+    val library: MutableState<Map<Int, KnownFace>>,
+    /** Распознанные в текущем кадре лица: ключ — trackingId */
     val known: MutableState<Map<Int, KnownFace>>,
     /**
      * Идентификатор лица, за которым сейчас идёт слежение.
@@ -84,14 +83,14 @@ class FaceTrackerState internal constructor(
      */
     val activeId: MutableState<Int?>,
 ) {
-    /**
-     * Добавить известное лицо по его [id].
-     *
-     * В реальном приложении `id` можно получить, сфотографировав человека
-     * в режиме отладки и считав `activeId` из состояния.
-     */
-    fun addKnownFace(id: Int, name: String, priority: Int = 0) {
-        known.value = known.value + (id to KnownFace(name, priority))
+    /** Добавить лицо в библиотеку известных по его [id]. */
+    fun addKnownFace(id: Int, name: String, priority: Int = 0, descriptor: List<Float>) {
+        library.value = library.value + (id to KnownFace(name, priority, descriptor))
+    }
+
+    /** Удалить лицо из библиотеки известных. */
+    fun removeKnownFace(id: Int) {
+        library.value = library.value - id
     }
 }
 
@@ -131,6 +130,7 @@ fun rememberFaceTracker(
             mutableStateOf<Pair<Int, Int>?>(null),
             mutableStateOf<Pair<Float, Float>?>(null),
             mutableStateOf(emptyMap()),
+            mutableStateOf(emptyMap()),
             mutableStateOf(null),
         )
     }
@@ -167,7 +167,7 @@ fun rememberFaceTracker(
             FaceDetectorOptions.Builder()
                 // Быстрый режим и отключение лишних фич экономят батарею
                 .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
-                .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_NONE)
+                .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
                 .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_NONE)
                 .setContourMode(FaceDetectorOptions.CONTOUR_MODE_NONE)
                 .enableTracking()
@@ -243,19 +243,34 @@ fun rememberFaceTracker(
 
                             val tracked = faces.map { face ->
                                 val box = face.boundingBox
-                                // Зеркалим координаты, т.к. фронтальная камера выдаёт отражённое изображение
                                 val mirrored = Rect(
                                     image.width - box.right,
                                     box.top,
                                     image.width - box.left,
                                     box.bottom
                                 )
-                                TrackedFace(face.trackingId, mirrored)
+                                val desc = extractDescriptor(face)
+                                TrackedFace(face.trackingId, mirrored, desc)
                             }
                             // Сохраняем все лица для дальнейшего вывода в отладочном окне
                             state.faces.value = tracked
 
-                            val knownMap = state.known.value
+                            // Сопоставляем найденные лица с библиотекой известных
+                            val recognized = mutableMapOf<Int, KnownFace>()
+                            val library = state.library.value
+                            tracked.forEach { t ->
+                                val id = t.id
+                                val desc = t.descriptor
+                                if (id != null && desc != null) {
+                                    val match = library.values.minByOrNull { distance(desc, it.descriptor) }
+                                    if (match != null && distance(desc, match.descriptor) < 0.1f) {
+                                        recognized[id] = match
+                                    }
+                                }
+                            }
+                            state.known.value = recognized
+
+                            val knownMap = recognized
                             // Отбираем лица, которые уже сохранены пользователем как "знакомые"
                             val knownFaces = faces.filter { knownMap.containsKey(it.trackingId) }
                             // Приоритет: если есть знакомые лица — выбираем самое важное,
@@ -323,7 +338,7 @@ fun rememberFaceTracker(
                                             (image.width - xMin).toInt(),
                                             yMax.toInt()
                                         )
-                                        state.faces.value = listOf(TrackedFace(null, mirrored))
+                                        state.faces.value = listOf(TrackedFace(null, mirrored, null))
                                         val cx = mirrored.exactCenterX()
                                         val cy = mirrored.exactCenterY()
                                         val px = image.width.toFloat()
@@ -391,6 +406,38 @@ fun rememberFaceTracker(
     }
 
     return state
+}
+
+// Извлекает нормализованный вектор признаков из landmark'ов лица
+private fun extractDescriptor(face: com.google.mlkit.vision.face.Face): FloatArray? {
+    val landmarks = listOf(
+        face.getLandmark(com.google.mlkit.vision.face.FaceLandmark.LEFT_EYE),
+        face.getLandmark(com.google.mlkit.vision.face.FaceLandmark.RIGHT_EYE),
+        face.getLandmark(com.google.mlkit.vision.face.FaceLandmark.NOSE_BASE),
+        face.getLandmark(com.google.mlkit.vision.face.FaceLandmark.MOUTH_LEFT),
+        face.getLandmark(com.google.mlkit.vision.face.FaceLandmark.MOUTH_RIGHT),
+    )
+    if (landmarks.any { it == null }) return null
+    val box = face.boundingBox
+    val w = box.width().toFloat()
+    val h = box.height().toFloat()
+    val arr = FloatArray(landmarks.size * 2)
+    landmarks.forEachIndexed { index, lm ->
+        val l = lm!!
+        arr[index * 2] = (l.position.x - box.left) / w
+        arr[index * 2 + 1] = (l.position.y - box.top) / h
+    }
+    return arr
+}
+
+// Евклидово расстояние между двумя дескрипторами лиц
+private fun distance(a: FloatArray, b: List<Float>): Float {
+    var sum = 0f
+    for (i in a.indices) {
+        val d = a[i] - b[i]
+        sum += d * d
+    }
+    return kotlin.math.sqrt(sum)
 }
 
 /**

@@ -25,13 +25,31 @@ class FaceSettingsViewModel @Inject constructor(
     val knownFaces = dataStore.data.map { it.knownFacesMap }
 
     /**
-     * Добавить новое лицо в настройки по его [id], [name] и [priority].
+     * Добавить новое лицо в настройки по его [id], [name], [priority] и [descriptor].
      */
-    fun addKnownFace(id: Int, name: String, priority: Int) {
+    fun addKnownFace(id: Int, name: String, priority: Int, descriptor: List<Float>) {
         viewModelScope.launch {
             dataStore.updateData { settings ->
                 settings.toBuilder()
-                    .putKnownFaces(id, FaceEntry.newBuilder().setName(name).setPriority(priority).build())
+                    .putKnownFaces(
+                        id,
+                        FaceEntry.newBuilder()
+                            .setName(name)
+                            .setPriority(priority)
+                            .addAllDescriptor(descriptor)
+                            .build()
+                    )
+                    .build()
+            }
+        }
+    }
+
+    /** Удалить сохранённое лицо по его [id]. */
+    fun removeKnownFace(id: Int) {
+        viewModelScope.launch {
+            dataStore.updateData { settings ->
+                settings.toBuilder()
+                    .removeKnownFaces(id)
                     .build()
             }
         }
