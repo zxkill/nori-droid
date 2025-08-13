@@ -144,14 +144,12 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .build()
         analysis.setAnalyzer(executor) { imageProxy ->
-            // В авто-режиме анализ кадров не нужен
-            if (eyesState.autoMode) {
-                imageProxy.close()
-                return@setAnalyzer
-            }
-            // Если предыдущий кадр ещё обрабатывается или это нечётный кадр,
-            // сразу его закрываем, тем самым сокращая частоту анализа
-            if (isProcessing || frameCounter++ % 2 != 0) {
+            // Если предыдущий кадр ещё обрабатывается или это не тот кадр,
+            // который нужно анализировать, сразу его закрываем.
+            // В авто-режиме проверяем лишь каждый десятый кадр, чтобы
+            // снизить нагрузку, но всё равно искать появление лица.
+            val step = if (eyesState.autoMode) 10 else 2
+            if (isProcessing || frameCounter++ % step != 0) {
                 imageProxy.close()
                 return@setAnalyzer
             }
