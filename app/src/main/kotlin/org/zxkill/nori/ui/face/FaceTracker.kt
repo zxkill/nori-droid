@@ -105,6 +105,9 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
         var isProcessing = false
         // Счётчик кадров, чтобы обрабатывать лишь каждый второй
         var frameCounter = 0
+        // Сглаженные значения направления взгляда
+        var smoothX = 0f
+        var smoothY = 0f
         // Строим use case анализа с ограничением частоты кадров камеры
         val analysisBuilder = ImageAnalysis.Builder()
         Camera2Interop.Extender(analysisBuilder)
@@ -172,8 +175,8 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
                             // смещается вверх в кадре, поэтому дополнительная инверсия не нужна
                             val targetY = (normY * 1.5f).coerceIn(-1f, 1f)
                             // Плавно приближаем текущий взгляд к целевому
-                            val smoothX = eyesState.lookX + (targetX - eyesState.lookX) * SMOOTHING
-                            val smoothY = eyesState.lookY + (targetY - eyesState.lookY) * SMOOTHING
+                            smoothX += (targetX - smoothX) * SMOOTHING
+                            smoothY += (targetY - smoothY) * SMOOTHING
                             // Сохраняем углы отклонения для отладки
                             state.offsets.value = Pair(smoothX * FOV_DEG_X / 2f, smoothY * FOV_DEG_Y / 2f)
                             eyesState.lookAt(smoothX, smoothY)
@@ -216,8 +219,8 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
                                         // Ось Y направлена вниз, но при подъёме головы лицо смещается вверх,
                                         // поэтому используем нормализованное значение без инверсии знака
                                         val targetY = (normY * 1.5f).coerceIn(-1f, 1f)
-                                        val smoothX = eyesState.lookX + (targetX - eyesState.lookX) * SMOOTHING
-                                        val smoothY = eyesState.lookY + (targetY - eyesState.lookY) * SMOOTHING
+                                        smoothX += (targetX - smoothX) * SMOOTHING
+                                        smoothY += (targetY - smoothY) * SMOOTHING
                                         state.offsets.value = Pair(smoothX * FOV_DEG_X / 2f, smoothY * FOV_DEG_Y / 2f)
                                         eyesState.lookAt(smoothX, smoothY)
                                     } else {
@@ -318,5 +321,5 @@ private const val FOV_DEG_Y = 38f
 // Минимальная уверенность детектора поз для учета landmark
 private const val POSE_MIN_VIS = 0.8f
 // Коэффициент плавности перемещения взгляда
-private const val SMOOTHING = 0.4f
+private const val SMOOTHING = 0.15f
 
