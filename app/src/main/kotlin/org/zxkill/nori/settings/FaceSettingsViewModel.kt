@@ -9,6 +9,7 @@ import androidx.datastore.core.DataStore
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import org.zxkill.nori.settings.datastore.FaceEntry
+import org.zxkill.nori.settings.datastore.FaceSample
 import org.zxkill.nori.settings.datastore.UserSettings
 
 /**
@@ -38,7 +39,7 @@ class FaceSettingsViewModel @Inject constructor(
                     val entryBuilder = existing.value.toBuilder()
                     entryBuilder.setPriority(priority)
                         .addSamples(
-                            FaceEntry.FaceSample.newBuilder()
+                            FaceSample.newBuilder()
                                 .addAllDescriptor(descriptor)
                                 .build(),
                         )
@@ -51,7 +52,7 @@ class FaceSettingsViewModel @Inject constructor(
                             .setName(name)
                             .setPriority(priority)
                             .addSamples(
-                                FaceEntry.FaceSample.newBuilder()
+                                FaceSample.newBuilder()
                                     .addAllDescriptor(descriptor)
                                     .build(),
                             )
