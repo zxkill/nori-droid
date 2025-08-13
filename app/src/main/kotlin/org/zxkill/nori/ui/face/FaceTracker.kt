@@ -1,6 +1,9 @@
 package org.zxkill.nori.ui.face
 
 import android.graphics.Rect
+import android.hardware.camera2.CaptureRequest
+import android.util.Range
+import androidx.camera.camera2.interop.Camera2Interop
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
@@ -49,8 +52,16 @@ class FaceTrackerState internal constructor(
 )
 
 /**
- * Создаёт и запускает трекер лица. Даже если [debug] отключён,
- * камера и анализ продолжают работать, просто превью не выводится на экран.
+ * Создаёт и запускает трекер лица.
+ *
+ * Трекер настроен на максимальную эффективность:
+ *  - детектор лица работает в быстром режиме без лишних опций;
+ *  - кадры анализируются в разрешении 640×480;
+ *  - частота работы камеры ограничена 15 кадрами в секунду;
+ *  - обрабатывается лишь каждый второй кадр, остальные игнорируются;
+ *  - если предыдущий кадр ещё в работе, следующий сразу закрывается.
+ * Даже при отключённом [debug] камера и анализ продолжают работать,
+ * просто превью не выводится на экран.
  *
  * @param debug     показывать ли отладочный вид с превью камеры
  * @param eyesState состояние глаз, куда передаются рассчитанные смещения
@@ -75,29 +86,57 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
         val executor = Executors.newSingleThreadExecutor()
         val detector = FaceDetection.getClient(
             FaceDetectorOptions.Builder()
+                // Быстрый режим и отключение лишних фич экономят батарею
                 .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
+                .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_NONE)
+                .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_NONE)
+                .setContourMode(FaceDetectorOptions.CONTOUR_MODE_NONE)
                 .build()
         )
         val poseDetector = PoseDetection.getClient(
             PoseDetectorOptions.Builder()
+                // Потоковый режим — для быстрого отклика при непрерывном анализе
                 .setDetectorMode(PoseDetectorOptions.STREAM_MODE)
                 .build()
         )
+        // Время последнего обнаружения лица (для авто-режима)
         var lastSeen = System.currentTimeMillis()
-        val analysis = ImageAnalysis.Builder()
+        // Флаг показывает, что текущий кадр ещё анализируется
+        var isProcessing = false
+        // Счётчик кадров, чтобы обрабатывать лишь каждый второй
+        var frameCounter = 0
+        // Строим use case анализа с ограничением частоты кадров камеры
+        val analysisBuilder = ImageAnalysis.Builder()
+        Camera2Interop.Extender(analysisBuilder)
+            .setCaptureRequestOption(
+                CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
+                Range(15, 15), // 15 fps — меньше нагрев от модуля камеры
+            )
+        val analysis = analysisBuilder
+            // Устанавливаем невысокое разрешение кадра для снижения нагрузки
+            .setTargetResolution(android.util.Size(640, 480))
             // Берём только последний кадр, чтобы не накапливать очередь
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .build()
         analysis.setAnalyzer(executor) { imageProxy ->
+            // Если предыдущий кадр ещё обрабатывается или это нечётный кадр,
+            // сразу его закрываем, тем самым сокращая частоту анализа
+            if (isProcessing || frameCounter++ % 2 != 0) {
+                imageProxy.close()
+                return@setAnalyzer
+            }
+            isProcessing = true
             // Анализ каждого кадра выполняется в отдельном потоке
             val mediaImage = imageProxy.image
             if (mediaImage != null) {
                 val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
                 fun handleNoFace() {
                     val now = System.currentTimeMillis()
+                    // Если лицо не появляется дольше секунды, включаем авто-режим
                     if (now - lastSeen > 1_000L) {
                         eyesState.setAutoMode(true)
                     }
+                    // Сбрасываем отладочные данные
                     state.faceBox.value = null
                     state.imageSize.value = null
                     state.offsets.value = null
@@ -138,6 +177,7 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
                             // Сохраняем углы отклонения для отладки
                             state.offsets.value = Pair(smoothX * FOV_DEG_X / 2f, smoothY * FOV_DEG_Y / 2f)
                             eyesState.lookAt(smoothX, smoothY)
+                            isProcessing = false
                             imageProxy.close()
                         } else {
                             // Если лиц не найдено, пробуем использовать детектор поз
@@ -186,14 +226,19 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
                                     }
                                 }
                                 .addOnFailureListener { handleNoFace() }
-                                .addOnCompleteListener { imageProxy.close() }
+                                .addOnCompleteListener {
+                                    isProcessing = false
+                                    imageProxy.close()
+                                }
                         }
                     }
                     .addOnFailureListener {
                         handleNoFace()
+                        isProcessing = false
                         imageProxy.close()
                     }
             } else {
+                isProcessing = false
                 imageProxy.close()
             }
         }
@@ -202,7 +247,14 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
         cameraProvider.unbindAll()
         val useCases = mutableListOf<UseCase>(analysis)
         if (debug) {
-            val preview = Preview.Builder().build().also {
+            // При выводе превью также ограничиваем частоту кадров камеры
+            val previewBuilder = Preview.Builder()
+            Camera2Interop.Extender(previewBuilder)
+                .setCaptureRequestOption(
+                    CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
+                    Range(15, 15),
+                )
+            val preview = previewBuilder.build().also {
                 it.setSurfaceProvider(state.previewView.surfaceProvider)
             }
             useCases.add(preview)
