@@ -65,7 +65,7 @@ fun Navigation() {
         }
 
         composable<FaceSettings> {
-            FaceSettingsScreen(navigationIcon = backIcon)
+            FaceSettingsScreen(onDismiss = { navController.navigateUp() })
         }
     }
 }

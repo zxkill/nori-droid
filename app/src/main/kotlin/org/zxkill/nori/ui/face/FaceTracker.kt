@@ -38,6 +38,7 @@ import org.zxkill.nori.ui.eyes.EyesState
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.delay
+import kotlin.math.min
 
 /**
  * Представляет лицо, обнаруженное в текущем кадре.
@@ -100,7 +101,7 @@ class FaceTrackerState internal constructor(
  * Трекер настроен на максимальную эффективность:
  *  - детектор лица работает в быстром режиме без лишних опций;
  *  - кадры анализируются в разрешении 320×240;
- *  - частота работы камеры ограничена 5 кадрами в секунду;
+ *  - частота работы камеры ограничена 5 кадрами в секунду (можно отключить);
  *  - в ручном режиме анализируется каждый кадр для быстрого отклика;
  *  - если предыдущий кадр ещё в работе, следующий сразу закрывается;
  *  - в авто-режиме анализ кадров полностью пропускается для экономии энергии.
@@ -109,9 +110,14 @@ class FaceTrackerState internal constructor(
  *
  * @param debug     показывать ли отладочный вид с превью камеры
  * @param eyesState состояние глаз, куда передаются рассчитанные смещения
+ * @param limitFps  ограничивать ли частоту кадров камеры до 5 fps
  */
 @Composable
-fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState {
+fun rememberFaceTracker(
+    debug: Boolean,
+    eyesState: EyesState,
+    limitFps: Boolean = true,
+): FaceTrackerState {
     val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current
 
@@ -120,7 +126,7 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
 
     val state = remember {
         FaceTrackerState(
-            PreviewView(context),
+            PreviewView(context).apply { scaleType = PreviewView.ScaleType.FIT_CENTER },
             mutableStateOf(emptyList()),
             mutableStateOf<Pair<Int, Int>?>(null),
             mutableStateOf<Pair<Float, Float>?>(null),
@@ -184,13 +190,15 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
         // Сглаженные значения направления взгляда, вычисляются без привязки к основной корутине
         var smoothX = 0f
         var smoothY = 0f
-        // Строим use case анализа с ограничением частоты кадров камеры
+        // Строим use case анализа с возможным ограничением частоты кадров камеры
         val analysisBuilder = ImageAnalysis.Builder()
-        Camera2Interop.Extender(analysisBuilder)
-            .setCaptureRequestOption(
-                CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
-                Range(5, 5), // 5 fps — ещё меньше нагрев от модуля камеры
-            )
+        if (limitFps) {
+            Camera2Interop.Extender(analysisBuilder)
+                .setCaptureRequestOption(
+                    CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
+                    Range(5, 5), // снижает нагрев модуля камеры
+                )
+        }
         val analysis = analysisBuilder
             // Устанавливаем невысокое разрешение кадра для снижения нагрузки
             .setTargetResolution(android.util.Size(320, 240))
@@ -354,13 +362,15 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
         cameraProvider.unbindAll()
         val useCases = mutableListOf<UseCase>(analysis)
         if (debug) {
-            // При выводе превью также ограничиваем частоту кадров камеры
+            // При выводе превью также можно ограничить частоту кадров камеры
             val previewBuilder = Preview.Builder()
-            Camera2Interop.Extender(previewBuilder)
-                .setCaptureRequestOption(
-                    CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
-                    Range(5, 5),
-                )
+            if (limitFps) {
+                Camera2Interop.Extender(previewBuilder)
+                    .setCaptureRequestOption(
+                        CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
+                        Range(5, 5),
+                    )
+            }
             val preview = previewBuilder.build().also {
                 it.setSurfaceProvider(state.previewView.surfaceProvider)
             }
@@ -404,15 +414,20 @@ fun FaceDebugView(state: FaceTrackerState, modifier: Modifier = Modifier) {
             val faces = state.faces.value
             if (img != null) {
                 val (iw, ih) = img
-                val scaleX = size.width / iw
-                val scaleY = size.height / ih
+                val scale = min(size.width / iw, size.height / ih)
+                val offsetX = (size.width - iw * scale) / 2f
+                val offsetY = (size.height - ih * scale) / 2f
                 // Рисуем рамку вокруг каждого найденного лица
                 faces.forEach { face ->
                     val box = face.box
+                    val left = offsetX + box.left * scale
+                    val top = offsetY + box.top * scale
+                    val width = box.width() * scale
+                    val height = box.height() * scale
                     drawRect(
                         color = Color.Green,
-                        topLeft = Offset(box.left * scaleX, box.top * scaleY),
-                        size = Size(box.width() * scaleX, box.height() * scaleY),
+                        topLeft = Offset(left, top),
+                        size = Size(width, height),
                         style = Stroke(width = 5f)
                     )
                     // Если лицо нам известно, подписываем его имя над рамкой
@@ -420,8 +435,8 @@ fun FaceDebugView(state: FaceTrackerState, modifier: Modifier = Modifier) {
                     if (name != null) {
                         drawContext.canvas.nativeCanvas.drawText(
                             name,
-                            box.left * scaleX,
-                            box.top * scaleY - 4f,
+                            left,
+                            top - 4f,
                             textPaint
                         )
                     }

@@ -6,6 +6,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import org.zxkill.nori.R
 import org.zxkill.nori.ui.eyes.rememberEyesState
@@ -17,21 +18,15 @@ import org.zxkill.nori.ui.face.rememberFaceTracker
  * Экран настройки известных лиц.
  * Позволяет сфотографировать лицо и сохранить его имя и приоритет.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FaceSettingsScreen(
-    navigationIcon: @Composable () -> Unit,
+    onDismiss: () -> Unit,
     viewModel: FaceSettingsViewModel = hiltViewModel(),
 ) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.pref_known_faces_title)) },
-                navigationIcon = navigationIcon,
-            )
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(shape = MaterialTheme.shapes.medium) {
+            FaceSettingsContent(viewModel = viewModel, modifier = Modifier.padding(16.dp))
         }
-    ) {
-        FaceSettingsContent(viewModel = viewModel, modifier = Modifier.padding(it))
     }
 }
 
@@ -41,7 +36,7 @@ private fun FaceSettingsContent(
     modifier: Modifier = Modifier,
 ) {
     // Для захвата изображения нужен трекер лица и состояние глаз
-    val tracker = rememberFaceTracker(debug = true, eyesState = rememberEyesState())
+    val tracker = rememberFaceTracker(debug = true, eyesState = rememberEyesState(), limitFps = false)
     val known by viewModel.knownFaces.collectAsState(initial = emptyMap())
 
     // При изменении настроек обновляем карту известных лиц в трекере
@@ -53,9 +48,16 @@ private fun FaceSettingsContent(
     var priorityText by remember { mutableStateOf("0") }
     val activeId = tracker.activeId.value
 
-    Column(modifier.fillMaxSize()) {
+    Column(modifier.width(320.dp)) {
+        Text(
+            text = stringResource(R.string.pref_known_faces_title),
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
         // Превью камеры с рамками лиц
-        FaceDebugView(state = tracker, modifier = Modifier.weight(1f))
+        FaceDebugView(state = tracker, modifier = Modifier
+            .fillMaxWidth()
+            .height(200.dp))
         OutlinedTextField(
             value = name,
             onValueChange = { name = it },
