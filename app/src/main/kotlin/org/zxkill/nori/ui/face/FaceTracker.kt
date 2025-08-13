@@ -110,11 +110,11 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
         Camera2Interop.Extender(analysisBuilder)
             .setCaptureRequestOption(
                 CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
-                Range(15, 15), // 15 fps — меньше нагрев от модуля камеры
+                Range(10, 10), // 10 fps — меньше нагрев от модуля камеры
             )
         val analysis = analysisBuilder
             // Устанавливаем невысокое разрешение кадра для снижения нагрузки
-            .setTargetResolution(android.util.Size(640, 480))
+            .setTargetResolution(android.util.Size(320, 240))
             // Берём только последний кадр, чтобы не накапливать очередь
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .build()
@@ -252,7 +252,7 @@ fun rememberFaceTracker(debug: Boolean, eyesState: EyesState): FaceTrackerState 
             Camera2Interop.Extender(previewBuilder)
                 .setCaptureRequestOption(
                     CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
-                    Range(15, 15),
+                    Range(10, 10),
                 )
             val preview = previewBuilder.build().also {
                 it.setSurfaceProvider(state.previewView.surfaceProvider)
