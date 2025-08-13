@@ -17,6 +17,7 @@ import org.zxkill.nori.ui.face.rememberFaceTracker
  * Экран настройки известных лиц.
  * Позволяет сфотографировать лицо и сохранить его имя и приоритет.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FaceSettingsScreen(
     navigationIcon: @Composable () -> Unit,
