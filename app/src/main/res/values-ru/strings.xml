@@ -72,6 +72,16 @@
     <string name="pref_face_debug_title">Отладочный вид камеры</string>
     <string name="pref_face_debug_summary_on">Превью камеры отображается</string>
     <string name="pref_face_debug_summary_off">Превью камеры скрыто</string>
+    <string name="pref_known_faces_title">Известные лица</string>
+    <string name="pref_known_faces_summary">Добавьте фото людей, которых нужно узнавать</string>
+    <string name="known_face_input_hint">Имя</string>
+    <string name="known_face_priority_hint">Приоритет</string>
+    <string name="known_face_priority_range">0–10, 10 — самый высокий</string>
+    <string name="known_face_add_button">Сохранить лицо</string>
+    <string name="known_faces_empty">Лица пока не сохранены</string>
+    <string name="known_faces_list_title">Сохранённые лица</string>
+    <string name="known_face_delete">Удалить лицо</string>
+    <string name="known_face_item_format">%1$s (приор=%2$d, %3$d фото)</string>
     <string name="skill_fallback_name_text">Текстовое сообщение</string>
     <string name="skill_open_unknown_app">Неизвестное приложение %1$s</string>
     <string name="eval_network_error">Ошибка связи</string>

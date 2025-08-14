@@ -48,6 +48,7 @@ import org.zxkill.nori.ui.theme.AppTheme
 fun MainSettingsScreen(
     navigationIcon: @Composable () -> Unit,
     navigateToSkillSettings: () -> Unit,
+    navigateToFaceSettings: () -> Unit,
     viewModel: MainSettingsViewModel = hiltViewModel(),
 ) {
     Scaffold(
@@ -61,6 +62,7 @@ fun MainSettingsScreen(
     ) {
         MainSettingsScreen(
             navigateToSkillSettings = navigateToSkillSettings,
+            navigateToFaceSettings = navigateToFaceSettings,
             viewModel = viewModel,
             modifier = Modifier.padding(it),
         )
@@ -70,6 +72,7 @@ fun MainSettingsScreen(
 @Composable
 private fun MainSettingsScreen(
     navigateToSkillSettings: () -> Unit,
+    navigateToFaceSettings: () -> Unit,
     viewModel: MainSettingsViewModel,
     modifier: Modifier = Modifier,
 ) {
@@ -134,6 +137,14 @@ private fun MainSettingsScreen(
         }
         item {
             SettingsItem(
+                title = stringResource(R.string.pref_known_faces_title),
+                icon = Icons.Default.Face,
+                description = stringResource(R.string.pref_known_faces_summary),
+                modifier = Modifier.clickable(onClick = navigateToFaceSettings)
+            )
+        }
+        item {
+            SettingsItem(
                 title = stringResource(R.string.pref_skills_title),
                 icon = Icons.Default.Extension,
                 description = stringResource(R.string.pref_skills_summary),
@@ -171,6 +182,7 @@ private fun MainSettingsScreenPreview() {
         ) {
             MainSettingsScreen(
                 navigateToSkillSettings = {},
+                navigateToFaceSettings = {},
                 viewModel = MainSettingsViewModel(
                     application = Application(),
                     dataStore = newDataStoreForPreviews(),
@@ -197,6 +209,7 @@ private fun MainSettingsScreenWithTopBarPreview() {
                     }
                 },
                 navigateToSkillSettings = {},
+                navigateToFaceSettings = {},
                 viewModel = MainSettingsViewModel(
                     application = Application(),
                     dataStore = newDataStoreForPreviews()

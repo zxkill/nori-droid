@@ -7,6 +7,23 @@ import "speech_output_device.proto";
 option java_package = "org.zxkill.nori.settings.datastore";
 option java_multiple_files = true;
 
+// Одна сохранённая выборка лица. Содержит вектор признаков,
+// полученный при конкретном сканировании.
+message FaceSample {
+    // Нормализованные координаты ключевых точек лица
+    repeated float descriptor = 1;
+}
+
+// Сохранённое знакомое лицо пользователя
+message FaceEntry {
+    // Имя человека
+    string name = 1;
+    // Приоритет, чем выше — тем важнее лицо при выборе цели слежения
+    int32 priority = 2;
+    // Набор выборок лица под разными углами
+    repeated FaceSample samples = 3;
+}
+
 message UserSettings {
     Theme theme = 1;
     reserved 2;
@@ -20,4 +37,6 @@ message UserSettings {
     int32 skill_output_display_seconds = 10;
     // Показывать ли отладочное превью камеры рядом с глазами
     bool face_tracking_debug = 11;
+    // Карта известных лиц: ключ — произвольный идентификатор, значение — описание лица
+    map<int32, FaceEntry> known_faces = 12;
 }
