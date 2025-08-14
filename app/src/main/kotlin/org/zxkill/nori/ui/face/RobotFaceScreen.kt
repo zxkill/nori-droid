@@ -37,6 +37,7 @@ import org.zxkill.nori.ui.eyes.AnimatedEyes
 import org.zxkill.nori.ui.eyes.EyesState
 import org.zxkill.nori.ui.eyes.rememberEyesState
 import org.zxkill.nori.ui.face.KnownFace
+import org.zxkill.nori.ui.face.FACE_DESCRIPTOR_SIZE
 import org.zxkill.nori.settings.datastore.UserSettings
 import org.zxkill.nori.util.checkPermissions
 import org.zxkill.nori.util.getNonGrantedSecurePermissions
@@ -73,15 +74,15 @@ fun RobotFaceScreen(
     // Запускаем трекинг лица. Превью камеры показываем только,
     // когда включён режим отладки и на экране нет вывода скилла
     val tracker = rememberFaceTracker(debug = faceDebug && visibleOutput == null, eyesState = eyesState)
-    // Загружаем известные лица из настроек в трекер
+    // Загружаем известные лица из настроек в трекер, отбрасывая повреждённые записи
     LaunchedEffect(settings.knownFacesMap) {
-        tracker.library.value = settings.knownFacesMap.mapValues {
-            KnownFace(
-                it.value.name,
-                it.value.priority,
-                it.value.samplesList.map { s -> s.descriptorList },
-            )
-        }
+        tracker.library.value = settings.knownFacesMap.mapNotNull { (id, face) ->
+            val samples = face.samplesList.mapNotNull { s ->
+                val d = s.descriptorList
+                if (d.size == FACE_DESCRIPTOR_SIZE) d else null
+            }
+            if (samples.isEmpty()) null else id to KnownFace(face.name, face.priority, samples)
+        }.toMap()
     }
 
     // Текущее состояние устройства распознавания речи

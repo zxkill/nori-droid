@@ -41,15 +41,26 @@ import kotlinx.coroutines.delay
 import kotlin.math.min
 import kotlin.math.abs
 
-// Максимально допустимое расстояние между дескрипторами, при котором
-// лицо считается знакомым. Чем меньше значение, тем строже сравнение
-// и тем ниже риск перепутать людей. Подбирается экспериментально.
-private const val MATCH_THRESHOLD = 0.02f
+// Количество используемых ориентиров лица. На их основе строится
+// вектор признаков, состоящий из попарных расстояний между точками.
+private const val LANDMARKS = 8
 
-// Минимальное количество координат (x или y), которые должны совпасть
-// между двумя дескрипторами, чтобы сравнение считалось валидным.
-// 8 координат ≈ 4 полноценных ориентиров лица.
-private const val MIN_MATCH_POINTS = 8
+// Длина дескриптора лица: число попарных расстояний между ориентирыми.
+// Используется для фильтрации устаревших данных из настроек.
+const val FACE_DESCRIPTOR_SIZE = LANDMARKS * (LANDMARKS - 1) / 2 // 28
+
+// Минимальное количество совпавших расстояний между точками,
+// при котором сравнение считается надёжным.
+const val MIN_DESCRIPTOR_POINTS = 10
+
+// Максимально допустимое среднее отклонение между дескрипторами, при котором
+// лицо считается знакомым. Чем меньше значение, тем строже сравнение
+// и тем ниже риск перепутать людей.
+private const val MATCH_THRESHOLD = 0.03f
+
+// Минимальный зазор между лучшим и вторым по совпадению лицом.
+// Если различие меньше, считаем, что алгоритм не уверен и лицо неизвестно.
+private const val MATCH_MARGIN = 0.01f
 
 /**
  * Представляет лицо, обнаруженное в текущем кадре.
@@ -302,18 +313,24 @@ fun rememberFaceTracker(
                                     } else if (desc != null) {
                                         var best: KnownFace? = null
                                         var bestDist = Float.MAX_VALUE
+                                        var secondDist = Float.MAX_VALUE
                                         // Сравниваем найденное лицо со всеми сохранёнными выборками
                                         library.values.forEach { face ->
                                             val dist = face.descriptors
                                                 .minOfOrNull { d -> distance(desc, d) } ?: return@forEach
                                             if (dist < bestDist) {
+                                                secondDist = bestDist
                                                 bestDist = dist
                                                 best = face
+                                            } else if (dist < secondDist) {
+                                                secondDist = dist
                                             }
                                         }
-                                        // Считаем лицо знакомым, только если расстояние
-                                        // меньше заранее подобранного порога.
-                                        if (best != null && bestDist < MATCH_THRESHOLD) {
+                                        // Считаем лицо знакомым, только если оно заметно ближе,
+                                        // чем остальные, и расстояние ниже порога.
+                                        if (best != null &&
+                                            bestDist < MATCH_THRESHOLD &&
+                                            secondDist - bestDist > MATCH_MARGIN) {
                                             recognized[id] = best!!
                                         }
                                     }
@@ -459,9 +476,11 @@ fun rememberFaceTracker(
     return state
 }
 
-// Извлекает нормализованный вектор признаков из landmark'ов лица
+// Извлекает нормализованный вектор признаков из landmark'ов лица.
+// В качестве признаков используется набор попарных расстояний между точками
+// лица, нормализованных на размеры рамки. Такой подход устойчив к смещению
+// и лучше различает людей с похожими пропорциями.
 private fun extractDescriptor(face: com.google.mlkit.vision.face.Face): FloatArray? {
-    // Используем расширенный набор ориентиров, чтобы лучше отличать людей
     val landmarks = listOf(
         face.getLandmark(com.google.mlkit.vision.face.FaceLandmark.LEFT_EYE),
         face.getLandmark(com.google.mlkit.vision.face.FaceLandmark.RIGHT_EYE),
@@ -475,23 +494,39 @@ private fun extractDescriptor(face: com.google.mlkit.vision.face.Face): FloatArr
     val box = face.boundingBox
     val w = box.width().toFloat()
     val h = box.height().toFloat()
-    // Заполняем массив координатами; отсутствующие точки помечаем NaN,
-    // чтобы их можно было пропустить при сравнении
-    val arr = FloatArray(landmarks.size * 2) { Float.NaN }
+    // Нормализованные координаты ориентиров внутри рамки
+    val points = Array<Pair<Float, Float>?>(landmarks.size) { null }
     landmarks.forEachIndexed { index, lm ->
         lm?.let { l ->
-            arr[index * 2] = (l.position.x - box.left) / w
-            arr[index * 2 + 1] = (l.position.y - box.top) / h
+            points[index] = ((l.position.x - box.left) / w) to ((l.position.y - box.top) / h)
         }
     }
-    // Если ни одной точки не удалось получить, дескриптор бессмысленен
-    return if (arr.all { it.isNaN() }) null else arr
+    // Формируем вектор попарных расстояний
+    val desc = FloatArray(FACE_DESCRIPTOR_SIZE) { Float.NaN }
+    var k = 0
+    for (i in 0 until landmarks.size) {
+        for (j in i + 1 until landmarks.size) {
+            val a = points[i]
+            val b = points[j]
+            desc[k++] = if (a != null && b != null) {
+                val dx = a.first - b.first
+                val dy = a.second - b.second
+                kotlin.math.sqrt(dx * dx + dy * dy)
+            } else {
+                Float.NaN
+            }
+        }
+    }
+    // Если ни одного расстояния получить не удалось — дескриптор бессмысленен
+    return if (desc.all { it.isNaN() }) null else desc
 }
 
 // Евклидово расстояние между двумя дескрипторами лиц
 // Возвращает бесконечность, если хотя бы один параметр сильно отличается —
 // это позволяет отсечь заведомо чужие лица даже при небольшой суммарной ошибке.
 private fun distance(a: FloatArray, b: List<Float>): Float {
+    // Дескрипторы разной длины сравнивать нельзя — они построены по разным схемам
+    if (a.size != b.size) return Float.POSITIVE_INFINITY
     val len = min(a.size, b.size)
     var sum = 0f
     var count = 0
@@ -501,12 +536,12 @@ private fun distance(a: FloatArray, b: List<Float>): Float {
         if (av.isNaN() || bv.isNaN()) continue
         val diff = av - bv
         // Если координаты слишком расходятся, лица точно разные
-        if (abs(diff) > 0.1f) return Float.POSITIVE_INFINITY
+        if (abs(diff) > 0.05f) return Float.POSITIVE_INFINITY
         sum += diff * diff
         count++
     }
     // Слишком малое число совпавших точек даёт ненадёжный результат
-    if (count < MIN_MATCH_POINTS) return Float.POSITIVE_INFINITY
+    if (count < MIN_DESCRIPTOR_POINTS) return Float.POSITIVE_INFINITY
     // Нормализуем на количество общих точек, чтобы порог не зависел от длины вектора
     return kotlin.math.sqrt(sum / count)
 }

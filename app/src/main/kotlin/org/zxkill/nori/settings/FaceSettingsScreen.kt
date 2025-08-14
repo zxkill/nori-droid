@@ -16,6 +16,8 @@ import org.zxkill.nori.R
 import org.zxkill.nori.ui.eyes.rememberEyesState
 import org.zxkill.nori.ui.face.FaceDebugView
 import org.zxkill.nori.ui.face.KnownFace
+import org.zxkill.nori.ui.face.FACE_DESCRIPTOR_SIZE
+import org.zxkill.nori.ui.face.MIN_DESCRIPTOR_POINTS
 import org.zxkill.nori.ui.face.rememberFaceTracker
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
@@ -46,15 +48,16 @@ private fun FaceSettingsContent(
     val tracker = rememberFaceTracker(debug = true, eyesState = rememberEyesState(), limitFps = false)
     val known by viewModel.knownFaces.collectAsState(initial = emptyMap())
 
-    // При изменении настроек обновляем библиотеку известных лиц в трекере
+    // При изменении настроек обновляем библиотеку известных лиц в трекере.
+    // Игнорируем выборки без дескрипторов или с некорректной длиной.
     LaunchedEffect(known) {
-        tracker.library.value = known.mapValues {
-            KnownFace(
-                it.value.name,
-                it.value.priority,
-                it.value.samplesList.map { s -> s.descriptorList }
-            )
-        }
+        tracker.library.value = known.mapNotNull { (id, face) ->
+            val samples = face.samplesList.mapNotNull { s ->
+                val d = s.descriptorList
+                if (d.size == FACE_DESCRIPTOR_SIZE) d else null
+            }
+            if (samples.isEmpty()) null else id to KnownFace(face.name, face.priority, samples)
+        }.toMap()
     }
 
     var name by remember { mutableStateOf("") }
@@ -101,9 +104,9 @@ private fun FaceSettingsContent(
             onClick = {
                 val priority = priorityText.toIntOrNull() ?: 0
                 val desc = tracker.faces.value.firstOrNull { it.id == activeId }?.descriptor
-                // Сохраняем лицо только если найдено достаточно ориентиров,
+                // Сохраняем лицо только если построено достаточно расстояний между точками,
                 // иначе дескриптор будет ненадёжным и приведёт к ошибочным совпадениям
-                if (desc != null && desc.count { !it.isNaN() } >= 8) {
+                if (desc != null && desc.count { !it.isNaN() } >= MIN_DESCRIPTOR_POINTS) {
                     viewModel.addKnownFace(name, priority, desc.toList())
                     name = ""
                 }
