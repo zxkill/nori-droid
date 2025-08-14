@@ -39,7 +39,6 @@ import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.delay
 import kotlin.math.min
-import kotlin.math.abs
 
 // Количество используемых ориентиров лица. На их основе строится
 // вектор признаков, состоящий из попарных расстояний между точками.
@@ -55,12 +54,14 @@ const val MIN_DESCRIPTOR_POINTS = 10
 
 // Максимально допустимое среднее отклонение между дескрипторами, при котором
 // лицо считается знакомым. Чем меньше значение, тем строже сравнение
-// и тем ниже риск перепутать людей.
-private const val MATCH_THRESHOLD = 0.03f
+// и тем ниже риск перепутать людей. Значение 0.1 подобрано экспериментально:
+// оно достаточно чувствительно, но допускает естественные колебания
+// расстояний между точками при разных ракурсах.
+private const val MATCH_THRESHOLD = 0.1f
 
 // Минимальный зазор между лучшим и вторым по совпадению лицом.
 // Если различие меньше, считаем, что алгоритм не уверен и лицо неизвестно.
-private const val MATCH_MARGIN = 0.01f
+private const val MATCH_MARGIN = 0.05f
 
 /**
  * Представляет лицо, обнаруженное в текущем кадре.
@@ -521,9 +522,9 @@ private fun extractDescriptor(face: com.google.mlkit.vision.face.Face): FloatArr
     return if (desc.all { it.isNaN() }) null else desc
 }
 
-// Евклидово расстояние между двумя дескрипторами лиц
-// Возвращает бесконечность, если хотя бы один параметр сильно отличается —
-// это позволяет отсечь заведомо чужие лица даже при небольшой суммарной ошибке.
+// Евклидово расстояние между двумя дескрипторами лиц.
+// Если дескрипторы несовместимы по длине или совпадающих точек слишком мало,
+// возвращается бесконечность, что исключает ложные совпадения.
 private fun distance(a: FloatArray, b: List<Float>): Float {
     // Дескрипторы разной длины сравнивать нельзя — они построены по разным схемам
     if (a.size != b.size) return Float.POSITIVE_INFINITY
@@ -535,8 +536,6 @@ private fun distance(a: FloatArray, b: List<Float>): Float {
         val bv = b[i]
         if (av.isNaN() || bv.isNaN()) continue
         val diff = av - bv
-        // Если координаты слишком расходятся, лица точно разные
-        if (abs(diff) > 0.05f) return Float.POSITIVE_INFINITY
         sum += diff * diff
         count++
     }
