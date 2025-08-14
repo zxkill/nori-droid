@@ -42,10 +42,14 @@ import kotlin.math.min
 import kotlin.math.abs
 
 // Максимально допустимое расстояние между дескрипторами, при котором
-// лицо считается знакомым. Значение подобрано экспериментально так,
-// чтобы минимизировать ложные срабатывания: если расстояние больше,
-// считаем лицо незнакомым.
-private const val MATCH_THRESHOLD = 0.05f
+// лицо считается знакомым. Чем меньше значение, тем строже сравнение
+// и тем ниже риск перепутать людей. Подбирается экспериментально.
+private const val MATCH_THRESHOLD = 0.02f
+
+// Минимальное количество координат (x или y), которые должны совпасть
+// между двумя дескрипторами, чтобы сравнение считалось валидным.
+// 8 координат ≈ 4 полноценных ориентиров лица.
+private const val MIN_MATCH_POINTS = 8
 
 /**
  * Представляет лицо, обнаруженное в текущем кадре.
@@ -496,12 +500,13 @@ private fun distance(a: FloatArray, b: List<Float>): Float {
         val bv = b[i]
         if (av.isNaN() || bv.isNaN()) continue
         val diff = av - bv
-        if (abs(diff) > 0.15f) return Float.POSITIVE_INFINITY
+        // Если координаты слишком расходятся, лица точно разные
+        if (abs(diff) > 0.1f) return Float.POSITIVE_INFINITY
         sum += diff * diff
         count++
     }
-    // Если общих точек нет, считаем расстояние бесконечным
-    if (count == 0) return Float.POSITIVE_INFINITY
+    // Слишком малое число совпавших точек даёт ненадёжный результат
+    if (count < MIN_MATCH_POINTS) return Float.POSITIVE_INFINITY
     // Нормализуем на количество общих точек, чтобы порог не зависел от длины вектора
     return kotlin.math.sqrt(sum / count)
 }

@@ -101,7 +101,9 @@ private fun FaceSettingsContent(
             onClick = {
                 val priority = priorityText.toIntOrNull() ?: 0
                 val desc = tracker.faces.value.firstOrNull { it.id == activeId }?.descriptor
-                if (desc != null) {
+                // Сохраняем лицо только если найдено достаточно ориентиров,
+                // иначе дескриптор будет ненадёжным и приведёт к ошибочным совпадениям
+                if (desc != null && desc.count { !it.isNaN() } >= 8) {
                     viewModel.addKnownFace(name, priority, desc.toList())
                     name = ""
                 }
