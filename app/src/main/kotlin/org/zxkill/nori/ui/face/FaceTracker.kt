@@ -39,11 +39,13 @@ import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.delay
 import kotlin.math.min
+import kotlin.math.abs
 
 // Максимально допустимое расстояние между дескрипторами, при котором
-// лицо считается знакомым. Чем меньше значение, тем строже сравнение
-// и тем ниже вероятность перепутать людей.
-private const val MATCH_THRESHOLD = 0.2f
+// лицо считается знакомым. Значение подобрано экспериментально так,
+// чтобы минимизировать ложные срабатывания: если расстояние больше,
+// считаем лицо незнакомым.
+private const val MATCH_THRESHOLD = 0.05f
 
 /**
  * Представляет лицо, обнаруженное в текущем кадре.
@@ -483,15 +485,19 @@ private fun extractDescriptor(face: com.google.mlkit.vision.face.Face): FloatArr
 }
 
 // Евклидово расстояние между двумя дескрипторами лиц
+// Возвращает бесконечность, если хотя бы один параметр сильно отличается —
+// это позволяет отсечь заведомо чужие лица даже при небольшой суммарной ошибке.
 private fun distance(a: FloatArray, b: List<Float>): Float {
     val len = min(a.size, b.size)
     if (len == 0) return Float.POSITIVE_INFINITY
     var sum = 0f
     for (i in 0 until len) {
-        val d = a[i] - b[i]
-        sum += d * d
+        val diff = a[i] - b[i]
+        if (abs(diff) > 0.15f) return Float.POSITIVE_INFINITY
+        sum += diff * diff
     }
-    return kotlin.math.sqrt(sum)
+    // Нормализуем на количество элементов, чтобы порог не зависел от длины вектора
+    return kotlin.math.sqrt(sum / len)
 }
 
 /**
