@@ -122,8 +122,8 @@ class FaceTrackerState internal constructor(
  * Создаёт и запускает трекер лица.
  *
  * Трекер настроен на максимальную эффективность:
- *  - детектор лица работает в быстром режиме без лишних опций;
- *  - кадры анализируются в разрешении 320×240;
+ *  - детектор лица работает в точном режиме без лишних опций;
+ *  - кадры анализируются в разрешении 640×480;
  *  - частота работы камеры ограничена 5 кадрами в секунду (можно отключить);
  *  - в ручном режиме анализируется каждый кадр для быстрого отклика;
  *  - если предыдущий кадр ещё в работе, следующий сразу закрывается;
@@ -189,8 +189,8 @@ fun rememberFaceTracker(
         // Детектор лиц ML Kit. Включаем трекинг, чтобы получать стабильные `trackingId`.
         val detector = FaceDetection.getClient(
             FaceDetectorOptions.Builder()
-                // Быстрый режим и отключение лишних фич экономят батарею
-                .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
+                // Точный режим лучше распознаёт лицо под углом, пусть и чуть медленнее
+                .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
                 .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
                 .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_NONE)
                 .setContourMode(FaceDetectorOptions.CONTOUR_MODE_NONE)
@@ -224,8 +224,8 @@ fun rememberFaceTracker(
                 )
         }
         val analysis = analysisBuilder
-            // Устанавливаем невысокое разрешение кадра для снижения нагрузки
-            .setTargetResolution(android.util.Size(320, 240))
+            // Анализируем кадры в повышенном разрешении для более устойчивого детектора
+            .setTargetResolution(android.util.Size(640, 480))
             // Берём только последний кадр, чтобы не накапливать очередь
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .build()
@@ -301,7 +301,6 @@ fun rememberFaceTracker(
                                         // Сравниваем найденное лицо со всеми сохранёнными выборками
                                         library.values.forEach { face ->
                                             val dist = face.descriptors
-                                                .filter { it.size == desc.size }
                                                 .minOfOrNull { d -> distance(desc, d) } ?: return@forEach
                                             if (dist < bestDist) {
                                                 bestDist = dist
@@ -469,19 +468,20 @@ private fun extractDescriptor(face: com.google.mlkit.vision.face.Face): FloatArr
         face.getLandmark(com.google.mlkit.vision.face.FaceLandmark.LEFT_CHEEK),
         face.getLandmark(com.google.mlkit.vision.face.FaceLandmark.RIGHT_CHEEK),
     )
-    // Если какого‑то ориентира нет (например, лицо повернуто боком),
-    // то сравнение будет некорректным, поэтому возвращаем null
-    if (landmarks.any { it == null }) return null
     val box = face.boundingBox
     val w = box.width().toFloat()
     val h = box.height().toFloat()
-    val arr = FloatArray(landmarks.size * 2)
+    // Заполняем массив координатами; отсутствующие точки помечаем NaN,
+    // чтобы их можно было пропустить при сравнении
+    val arr = FloatArray(landmarks.size * 2) { Float.NaN }
     landmarks.forEachIndexed { index, lm ->
-        val l = lm!!
-        arr[index * 2] = (l.position.x - box.left) / w
-        arr[index * 2 + 1] = (l.position.y - box.top) / h
+        lm?.let { l ->
+            arr[index * 2] = (l.position.x - box.left) / w
+            arr[index * 2 + 1] = (l.position.y - box.top) / h
+        }
     }
-    return arr
+    // Если ни одной точки не удалось получить, дескриптор бессмысленен
+    return if (arr.all { it.isNaN() }) null else arr
 }
 
 // Евклидово расстояние между двумя дескрипторами лиц
@@ -489,15 +489,21 @@ private fun extractDescriptor(face: com.google.mlkit.vision.face.Face): FloatArr
 // это позволяет отсечь заведомо чужие лица даже при небольшой суммарной ошибке.
 private fun distance(a: FloatArray, b: List<Float>): Float {
     val len = min(a.size, b.size)
-    if (len == 0) return Float.POSITIVE_INFINITY
     var sum = 0f
+    var count = 0
     for (i in 0 until len) {
-        val diff = a[i] - b[i]
+        val av = a[i]
+        val bv = b[i]
+        if (av.isNaN() || bv.isNaN()) continue
+        val diff = av - bv
         if (abs(diff) > 0.15f) return Float.POSITIVE_INFINITY
         sum += diff * diff
+        count++
     }
-    // Нормализуем на количество элементов, чтобы порог не зависел от длины вектора
-    return kotlin.math.sqrt(sum / len)
+    // Если общих точек нет, считаем расстояние бесконечным
+    if (count == 0) return Float.POSITIVE_INFINITY
+    // Нормализуем на количество общих точек, чтобы порог не зависел от длины вектора
+    return kotlin.math.sqrt(sum / count)
 }
 
 /**
