@@ -40,6 +40,11 @@ import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.delay
 import kotlin.math.min
 
+// Максимально допустимое расстояние между дескрипторами, при котором
+// лицо считается знакомым. Чем меньше значение, тем строже сравнение
+// и тем ниже вероятность перепутать людей.
+private const val MATCH_THRESHOLD = 0.2f
+
 /**
  * Представляет лицо, обнаруженное в текущем кадре.
  *
@@ -288,7 +293,9 @@ fun rememberFaceTracker(
                                             best = face
                                         }
                                     }
-                                    if (best != null && bestDist < 0.1f) {
+                                    // Считаем лицо знакомым, только если расстояние
+                                    // меньше заранее подобранного порога.
+                                    if (best != null && bestDist < MATCH_THRESHOLD) {
                                         recognized[id] = best!!
                                     }
                                 }
@@ -435,13 +442,19 @@ fun rememberFaceTracker(
 
 // Извлекает нормализованный вектор признаков из landmark'ов лица
 private fun extractDescriptor(face: com.google.mlkit.vision.face.Face): FloatArray? {
+    // Используем расширенный набор ориентиров, чтобы лучше отличать людей
     val landmarks = listOf(
         face.getLandmark(com.google.mlkit.vision.face.FaceLandmark.LEFT_EYE),
         face.getLandmark(com.google.mlkit.vision.face.FaceLandmark.RIGHT_EYE),
         face.getLandmark(com.google.mlkit.vision.face.FaceLandmark.NOSE_BASE),
         face.getLandmark(com.google.mlkit.vision.face.FaceLandmark.MOUTH_LEFT),
         face.getLandmark(com.google.mlkit.vision.face.FaceLandmark.MOUTH_RIGHT),
+        face.getLandmark(com.google.mlkit.vision.face.FaceLandmark.MOUTH_BOTTOM),
+        face.getLandmark(com.google.mlkit.vision.face.FaceLandmark.LEFT_CHEEK),
+        face.getLandmark(com.google.mlkit.vision.face.FaceLandmark.RIGHT_CHEEK),
     )
+    // Если какого‑то ориентира нет (например, лицо повернуто боком),
+    // то сравнение будет некорректным, поэтому возвращаем null
     if (landmarks.any { it == null }) return null
     val box = face.boundingBox
     val w = box.width().toFloat()
