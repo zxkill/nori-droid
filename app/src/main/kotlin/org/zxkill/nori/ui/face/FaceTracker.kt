@@ -86,7 +86,10 @@ class FaceTrackerState internal constructor(
     val offsets: MutableState<Pair<Float, Float>?>,
     /** Библиотека известных лиц из настроек пользователя */
     val library: MutableState<Map<Int, KnownFace>>,
-    /** Распознанные в текущем кадре лица: ключ — trackingId */
+    /**
+     * Распознанные лица в кадре. Информация сохраняется между кадрами,
+     * пока детектор выдаёт одинаковый `trackingId` для одного человека.
+     */
     val known: MutableState<Map<Int, KnownFace>>,
     /**
      * Идентификатор лица, за которым сейчас идёт слежение.
@@ -275,28 +278,39 @@ fun rememberFaceTracker(
                             state.faces.value = tracked
 
                             // Сопоставляем найденные лица с библиотекой известных
+                            // и запоминаем тех, кого уже узнавали ранее. Это позволяет
+                            // сохранять подпись даже если в текущем кадре дескриптор
+                            // лица не удалось построить (человек отвернулся).
+                            val previous = state.known.value
                             val recognized = mutableMapOf<Int, KnownFace>()
                             val library = state.library.value
                             tracked.forEach { t ->
                                 val id = t.id
                                 val desc = t.descriptor
-                                if (id != null && desc != null) {
-                                    var best: KnownFace? = null
-                                    var bestDist = Float.MAX_VALUE
-                                    // Сравниваем найденное лицо со всеми сохранёнными выборками
-                                    library.values.forEach { face ->
-                                        val dist = face.descriptors
-                                            .filter { it.size == desc.size }
-                                            .minOfOrNull { d -> distance(desc, d) } ?: return@forEach
-                                        if (dist < bestDist) {
-                                            bestDist = dist
-                                            best = face
+                                if (id != null) {
+                                    val already = previous[id]
+                                    if (already != null) {
+                                        // Лицо уже известно с прошлых кадров —
+                                        // сохраняем подпись независимо от текущего дескриптора
+                                        recognized[id] = already
+                                    } else if (desc != null) {
+                                        var best: KnownFace? = null
+                                        var bestDist = Float.MAX_VALUE
+                                        // Сравниваем найденное лицо со всеми сохранёнными выборками
+                                        library.values.forEach { face ->
+                                            val dist = face.descriptors
+                                                .filter { it.size == desc.size }
+                                                .minOfOrNull { d -> distance(desc, d) } ?: return@forEach
+                                            if (dist < bestDist) {
+                                                bestDist = dist
+                                                best = face
+                                            }
                                         }
-                                    }
-                                    // Считаем лицо знакомым, только если расстояние
-                                    // меньше заранее подобранного порога.
-                                    if (best != null && bestDist < MATCH_THRESHOLD) {
-                                        recognized[id] = best!!
+                                        // Считаем лицо знакомым, только если расстояние
+                                        // меньше заранее подобранного порога.
+                                        if (best != null && bestDist < MATCH_THRESHOLD) {
+                                            recognized[id] = best!!
+                                        }
                                     }
                                 }
                             }
