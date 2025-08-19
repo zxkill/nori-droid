@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 import org.zxkill.nori.R
 import org.zxkill.nori.settings.MainSettingsScreen
 import org.zxkill.nori.settings.SkillSettingsScreen
+import org.zxkill.nori.settings.FaceSettingsScreen
 import org.zxkill.nori.ui.face.RobotFaceScreen
 
 @Composable
@@ -55,11 +56,16 @@ fun Navigation() {
             MainSettingsScreen(
                 navigationIcon = backIcon,
                 navigateToSkillSettings = { navController.navigate(SkillSettings) },
+                navigateToFaceSettings = { navController.navigate(FaceSettings) },
             )
         }
 
         composable<SkillSettings> {
             SkillSettingsScreen(navigationIcon = backIcon)
+        }
+
+        composable<FaceSettings> {
+            FaceSettingsScreen(onDismiss = { navController.navigateUp() })
         }
     }
 }
