@@ -1,11 +1,18 @@
 package org.zxkill.nori.ui.face
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.ImageFormat
+import android.graphics.Matrix
 import android.graphics.Rect
+import android.graphics.YuvImage
+import java.io.ByteArrayOutputStream
 import android.hardware.camera2.CaptureRequest
 import android.util.Range
 import androidx.camera.camera2.interop.Camera2Interop
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.core.UseCase
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -40,28 +47,21 @@ import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.delay
 import kotlin.math.min
 
-// Количество используемых ориентиров лица. На их основе строится
-// вектор признаков, состоящий из попарных расстояний между точками.
-private const val LANDMARKS = 8
+/** Размер вектора признаков лица, возвращаемого моделью MobileFaceNet. */
+const val FACE_DESCRIPTOR_SIZE = 192
 
-// Длина дескриптора лица: число попарных расстояний между ориентирыми.
-// Используется для фильтрации устаревших данных из настроек.
-const val FACE_DESCRIPTOR_SIZE = LANDMARKS * (LANDMARKS - 1) / 2 // 28
 
-// Минимальное количество совпавших расстояний между точками,
-// при котором сравнение считается надёжным.
-const val MIN_DESCRIPTOR_POINTS = 10
+/**
+ * Порог совпадения для L2-нормализованных векторов MobileFaceNet.
+ * Если расстояние меньше, лица считаются одинаковыми.
+ */
+private const val MATCH_THRESHOLD = 0.9f
 
-// Максимально допустимое среднее отклонение между дескрипторами, при котором
-// лицо считается знакомым. Чем меньше значение, тем строже сравнение
-// и тем ниже риск перепутать людей. Значение 0.1 подобрано экспериментально:
-// оно достаточно чувствительно, но допускает естественные колебания
-// расстояний между точками при разных ракурсах.
-private const val MATCH_THRESHOLD = 0.1f
-
-// Минимальный зазор между лучшим и вторым по совпадению лицом.
-// Если различие меньше, считаем, что алгоритм не уверен и лицо неизвестно.
-private const val MATCH_MARGIN = 0.05f
+/**
+ * Насколько лучше должно быть совпадение относительно второго кандидата,
+ * чтобы считать распознавание достоверным.
+ */
+private const val MATCH_MARGIN = 0.2f
 
 /**
  * Представляет лицо, обнаруженное в текущем кадре.
@@ -159,6 +159,7 @@ fun rememberFaceTracker(
 ): FaceTrackerState {
     val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current
+    val embedder = remember { FaceEmbedder(context) }
 
     // Координаты точки, куда должны смотреть глаза. Обновляется анализатором кадров.
     val target = remember { AtomicReference(0f to 0f) }
@@ -281,6 +282,7 @@ fun rememberFaceTracker(
                             eyesState.setAutoMode(false)
                             state.imageSize.value = Pair(image.width, image.height)
 
+                            val frameBitmap = imageProxy.toBitmap()
                             val tracked = faces.map { face ->
                                 val box = face.boundingBox
                                 val mirrored = Rect(
@@ -289,7 +291,7 @@ fun rememberFaceTracker(
                                     image.width - box.left,
                                     box.bottom
                                 )
-                                val desc = extractDescriptor(face)
+                                val desc = extractDescriptor(frameBitmap, face, embedder)
                                 TrackedFace(face.trackingId, mirrored, desc)
                             }
                             // Сохраняем все лица для дальнейшего вывода в отладочном окне
@@ -477,72 +479,34 @@ fun rememberFaceTracker(
     return state
 }
 
-// Извлекает нормализованный вектор признаков из landmark'ов лица.
-// В качестве признаков используется набор попарных расстояний между точками
-// лица, нормализованных на размеры рамки. Такой подход устойчив к смещению
-// и лучше различает людей с похожими пропорциями.
-private fun extractDescriptor(face: com.google.mlkit.vision.face.Face): FloatArray? {
-    val landmarks = listOf(
-        face.getLandmark(com.google.mlkit.vision.face.FaceLandmark.LEFT_EYE),
-        face.getLandmark(com.google.mlkit.vision.face.FaceLandmark.RIGHT_EYE),
-        face.getLandmark(com.google.mlkit.vision.face.FaceLandmark.NOSE_BASE),
-        face.getLandmark(com.google.mlkit.vision.face.FaceLandmark.MOUTH_LEFT),
-        face.getLandmark(com.google.mlkit.vision.face.FaceLandmark.MOUTH_RIGHT),
-        face.getLandmark(com.google.mlkit.vision.face.FaceLandmark.MOUTH_BOTTOM),
-        face.getLandmark(com.google.mlkit.vision.face.FaceLandmark.LEFT_CHEEK),
-        face.getLandmark(com.google.mlkit.vision.face.FaceLandmark.RIGHT_CHEEK),
-    )
+// Извлекает эмбеддинг лица при помощи нейросетевой модели.
+// На вход подаётся обрезанный фрагмент кадра, соответствующий лицу.
+// Результат — нормализованный 192‑мерный вектор признаков.
+
+
+private fun extractDescriptor(frame: Bitmap, face: com.google.mlkit.vision.face.Face, embedder: FaceEmbedder): FloatArray? {
     val box = face.boundingBox
-    val w = box.width().toFloat()
-    val h = box.height().toFloat()
-    // Нормализованные координаты ориентиров внутри рамки
-    val points = Array<Pair<Float, Float>?>(landmarks.size) { null }
-    landmarks.forEachIndexed { index, lm ->
-        lm?.let { l ->
-            points[index] = ((l.position.x - box.left) / w) to ((l.position.y - box.top) / h)
-        }
-    }
-    // Формируем вектор попарных расстояний
-    val desc = FloatArray(FACE_DESCRIPTOR_SIZE) { Float.NaN }
-    var k = 0
-    for (i in 0 until landmarks.size) {
-        for (j in i + 1 until landmarks.size) {
-            val a = points[i]
-            val b = points[j]
-            desc[k++] = if (a != null && b != null) {
-                val dx = a.first - b.first
-                val dy = a.second - b.second
-                kotlin.math.sqrt(dx * dx + dy * dy)
-            } else {
-                Float.NaN
-            }
-        }
-    }
-    // Если ни одного расстояния получить не удалось — дескриптор бессмысленен
-    return if (desc.all { it.isNaN() }) null else desc
+    val x = box.left.coerceAtLeast(0)
+    val y = box.top.coerceAtLeast(0)
+    val w = (box.right.coerceAtMost(frame.width) - x)
+    val h = (box.bottom.coerceAtMost(frame.height) - y)
+    if (w <= 0 || h <= 0) return null
+    val cropped = Bitmap.createBitmap(frame, x, y, w, h)
+    return embedder.embed(cropped)
 }
 
-// Евклидово расстояние между двумя дескрипторами лиц.
-// Если дескрипторы несовместимы по длине или совпадающих точек слишком мало,
-// возвращается бесконечность, что исключает ложные совпадения.
+/**
+ * Евклидово расстояние между двумя векторами признаков.
+ * Несовместимые по длине векторы считаются бесконечно удалёнными.
+ */
 private fun distance(a: FloatArray, b: List<Float>): Float {
-    // Дескрипторы разной длины сравнивать нельзя — они построены по разным схемам
     if (a.size != b.size) return Float.POSITIVE_INFINITY
-    val len = min(a.size, b.size)
     var sum = 0f
-    var count = 0
-    for (i in 0 until len) {
-        val av = a[i]
-        val bv = b[i]
-        if (av.isNaN() || bv.isNaN()) continue
-        val diff = av - bv
+    for (i in a.indices) {
+        val diff = a[i] - b[i]
         sum += diff * diff
-        count++
     }
-    // Слишком малое число совпавших точек даёт ненадёжный результат
-    if (count < MIN_DESCRIPTOR_POINTS) return Float.POSITIVE_INFINITY
-    // Нормализуем на количество общих точек, чтобы порог не зависел от длины вектора
-    return kotlin.math.sqrt(sum / count)
+    return kotlin.math.sqrt(sum)
 }
 
 /**
@@ -616,3 +580,30 @@ private const val POSE_MIN_VIS = 0.8f
 // Увеличенное значение обеспечивает более быстрое следование за движением лица
 private const val SMOOTHING = 1.0f
 
+
+private fun ImageProxy.toBitmap(): Bitmap {
+    val nv21 = yuv420ToNv21(this)
+    val yuvImage = YuvImage(nv21, ImageFormat.NV21, width, height, null)
+    val out = ByteArrayOutputStream()
+    yuvImage.compressToJpeg(Rect(0, 0, width, height), 100, out)
+    val imageBytes = out.toByteArray()
+    var bmp = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+    val matrix = Matrix()
+    matrix.postRotate(imageInfo.rotationDegrees.toFloat())
+    bmp = Bitmap.createBitmap(bmp, 0, 0, bmp.width, bmp.height, matrix, true)
+    return bmp
+}
+
+private fun yuv420ToNv21(image: ImageProxy): ByteArray {
+    val yBuffer = image.planes[0].buffer
+    val uBuffer = image.planes[1].buffer
+    val vBuffer = image.planes[2].buffer
+    val ySize = yBuffer.remaining()
+    val uSize = uBuffer.remaining()
+    val vSize = vBuffer.remaining()
+    val nv21 = ByteArray(ySize + uSize + vSize)
+    yBuffer.get(nv21, 0, ySize)
+    vBuffer.get(nv21, ySize, vSize)
+    uBuffer.get(nv21, ySize + vSize, uSize)
+    return nv21
+}
